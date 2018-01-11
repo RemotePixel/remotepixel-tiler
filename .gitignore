@@ -3,6 +3,7 @@
 wheel.zip
 custom.zip
 node_modules/
+config.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
