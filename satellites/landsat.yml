@@ -1,0 +1,33 @@
+region: us-west-2
+iam:
+  -  Effect: "Allow"
+     Action:
+       - "s3:GetObject"
+     Resource:
+       - "arn:aws:s3:::landsat-pds/*"
+
+env:
+  GDAL_CACHEMAX: 75%
+  GDAL_TIFF_OVR_BLOCKSIZE: 512
+  VSI_CACHE: TRUE
+  VSI_CACHE_SIZE: 536870912
+  GDAL_DISABLE_READDIR_ON_OPEN: TRUE
+  CPL_VSIL_CURL_ALLOWED_EXTENSIONS: ".TIF,.ovr"
+  TOKEN: ${file(./.config.json):token}
+
+functions:
+  tiler:
+    handler: app.landsat.APP
+    alarms:
+      - functionInvocations
+      - functionErrors
+      - functionThrottles
+    memorySize: 1536
+    timeout: 10
+    events:
+      - http:
+          path: /{proxy+}
+          method: get
+          cors: true
+
+artifact: wheel.zip
