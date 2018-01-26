@@ -10,6 +10,8 @@ import numexpr as ne
 from rio_tiler import sentinel2
 from rio_tiler.utils import array_to_img, linear_rescale, get_colormap
 
+from aws_sat_api.search import sentinel2 as sentinel_search
+
 from lambda_proxy.proxy import API
 
 APP = API(app_name="sentinel-tiler")
@@ -25,6 +27,30 @@ RATIOS = {
 
 class SentinelTilerError(Exception):
     """Base exception class"""
+
+
+@APP.route('/search', methods=['GET'], cors=True)
+def search():
+    """
+    Handle search requests
+    """
+
+    query_args = APP.current_request.query_params
+    query_args = query_args if isinstance(query_args, dict) else {}
+
+    utm = query_args['utm']
+    lat = query_args['lat']
+    grid = query_args['grid']
+    level = query_args.get('level')
+    full = query_args.get('full', True)
+
+    data = sentinel_search(utm, lat, grid, full, level)
+    info = {
+        'request': {'utm': utm, 'lat': lat, 'grid': grid, 'full': full, 'level': level},
+        'meta': {'found': len(data)},
+        'results': data}
+
+    return ('OK', 'application/json', json.dumps(info))
 
 
 @APP.route('/bounds/<scene>', methods=['GET'], cors=True, token=True)

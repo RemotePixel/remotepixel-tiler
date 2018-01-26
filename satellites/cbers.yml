@@ -3,8 +3,10 @@ iam:
   -  Effect: "Allow"
      Action:
        - "s3:GetObject"
+       - "s3:ListBucket"
      Resource:
-       - "arn:aws:s3:::cbers-pds/*"
+       - "arn:aws:s3:::cbers-pds*"
+        - "arn:aws:s3:::cbers-meta-pds*"
 
 env:
   GDAL_CACHEMAX: 75%
@@ -13,7 +15,7 @@ env:
   VSI_CACHE_SIZE: 536870912
   GDAL_DISABLE_READDIR_ON_OPEN: TRUE
   CPL_VSIL_CURL_ALLOWED_EXTENSIONS: ".TIF"
-  TOKEN: ${file(./.config.json):token}
+  TOKEN: ${file(./config.json):token}
 
 functions:
   tiler:

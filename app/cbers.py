@@ -10,6 +10,8 @@ import numexpr as ne
 from rio_tiler import cbers
 from rio_tiler.utils import array_to_img, linear_rescale, get_colormap
 
+from aws_sat_api.search import cbers_search
+
 from lambda_proxy.proxy import API
 
 APP = API(app_name="cbers-tiler")
@@ -22,6 +24,27 @@ RATIOS = {
 
 class CbersTilerError(Exception):
     """Base exception class"""
+
+
+@APP.route('/search', methods=['GET'], cors=True)
+def search():
+    """
+    Handle search requests
+    """
+
+    query_args = APP.current_request.query_params
+    query_args = query_args if isinstance(query_args, dict) else {}
+
+    path = query_args['path']
+    row = query_args['row']
+
+    data = cbers_search(path, row)
+    info = {
+        'request': {'path': path, 'row': row},
+        'meta': {'found': len(data)},
+        'results': data}
+
+    return ('OK', 'application/json', json.dumps(info))
 
 
 @APP.route('/bounds/<scene>', methods=['GET'], cors=True, token=True)
