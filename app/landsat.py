@@ -7,10 +7,10 @@ from functools import reduce
 import numpy as np
 import numexpr as ne
 
-import mercantile
-
 from rio_tiler import landsat8
 from rio_tiler.utils import array_to_img, linear_rescale, get_colormap
+
+from aws_sat_api.search import landsat as landsat_search
 
 from lambda_proxy.proxy import API
 
@@ -33,6 +33,28 @@ RATIOS = {
 
 class LandsatTilerError(Exception):
     """Base exception class"""
+
+
+@APP.route('/search', methods=['GET'], cors=True)
+def search():
+    """
+    Handle search requests
+    """
+
+    query_args = APP.current_request.query_params
+    query_args = query_args if isinstance(query_args, dict) else {}
+
+    path = query_args['path']
+    row = query_args['row']
+    full = query_args.get('full', True)
+
+    data = list(landsat_search(path, row, full))
+    info = {
+        'request': {'path': path, 'row': row, 'full': full},
+        'meta': {'found': len(data)},
+        'results': data}
+
+    return ('OK', 'application/json', json.dumps(info))
 
 
 @APP.route('/bounds/<scene>', methods=['GET'], cors=True, token=True)

@@ -20,7 +20,7 @@ custom:
         topic: ${self:service}-${self:provider.stage}-alerts-alarm
         notifications:
           - protocol: email
-            endpoint: ${file(./.config.json):mail}
+            endpoint: ${file(./config.json):mail}
     definitions:
       functionInvocations:
         threshold: 10000
