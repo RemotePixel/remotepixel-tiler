@@ -6,6 +6,7 @@ iam:
        - "s3:GetObject"
      Resource:
        - "arn:aws:s3:::sentinel-s2*"
+       - "arn:aws:s3:::sentinel-s1*"
 
 env:
   GDAL_DATA: /var/task/share/gdal

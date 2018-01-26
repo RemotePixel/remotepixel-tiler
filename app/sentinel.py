@@ -29,7 +29,7 @@ class SentinelTilerError(Exception):
     """Base exception class"""
 
 
-@APP.route('/search', methods=['GET'], cors=True)
+@APP.route('/s2/search', methods=['GET'], cors=True)
 def search():
     """
     Handle search requests
@@ -41,10 +41,10 @@ def search():
     utm = query_args['utm']
     lat = query_args['lat']
     grid = query_args['grid']
-    level = query_args.get('level')
+    level = query_args.get('level', 'l1c')
     full = query_args.get('full', True)
 
-    data = sentinel_search(utm, lat, grid, full, level)
+    data = list(sentinel_search(utm, lat, grid, full, level))
     info = {
         'request': {'utm': utm, 'lat': lat, 'grid': grid, 'full': full, 'level': level},
         'meta': {'found': len(data)},
@@ -53,7 +53,7 @@ def search():
     return ('OK', 'application/json', json.dumps(info))
 
 
-@APP.route('/bounds/<scene>', methods=['GET'], cors=True, token=True)
+@APP.route('/s2/bounds/<scene>', methods=['GET'], cors=True, token=True)
 def sentinel_bounds(scene):
     """
     Handle bounds requests
@@ -63,7 +63,7 @@ def sentinel_bounds(scene):
     return ('OK', 'application/json', json.dumps(info))
 
 
-@APP.route('/metadata/<scene>', methods=['GET'], cors=True, token=True)
+@APP.route('/s2/metadata/<scene>', methods=['GET'], cors=True, token=True)
 def sentinel_metadata(scene):
     """
     Handle metadata requests
@@ -82,7 +82,7 @@ def sentinel_metadata(scene):
     return ('OK', 'application/json', json.dumps(info))
 
 
-@APP.route('/tiles/<scene>/<int:z>/<int:x>/<int:y>.<ext>', methods=['GET'], cors=True, token=True)
+@APP.route('/s2/tiles/<scene>/<int:z>/<int:x>/<int:y>.<ext>', methods=['GET'], cors=True, token=True)
 def sentinel_tile(scene, tile_z, tile_x, tile_y, tileformat):
     """
     Handle tile requests
@@ -118,7 +118,7 @@ def sentinel_tile(scene, tile_z, tile_x, tile_y, tileformat):
     return ('OK', f'image/{tileformat}', tile)
 
 
-@APP.route('/processing/<scene>/<int:z>/<int:x>/<int:y>.<ext>', methods=['GET'], cors=True, token=True)
+@APP.route('/s2/processing/<scene>/<int:z>/<int:x>/<int:y>.<ext>', methods=['GET'], cors=True, token=True)
 def sentinel_ratio(scene, tile_z, tile_x, tile_y, tileformat):
     """
     Handle processing requests

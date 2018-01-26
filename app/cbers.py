@@ -10,7 +10,7 @@ import numexpr as ne
 from rio_tiler import cbers
 from rio_tiler.utils import array_to_img, linear_rescale, get_colormap
 
-from aws_sat_api.search import cbers_search
+from aws_sat_api.search import cbers as cbers_search
 
 from lambda_proxy.proxy import API
 
@@ -38,7 +38,7 @@ def search():
     path = query_args['path']
     row = query_args['row']
 
-    data = cbers_search(path, row)
+    data = list(cbers_search(path, row))
     info = {
         'request': {'path': path, 'row': row},
         'meta': {'found': len(data)},

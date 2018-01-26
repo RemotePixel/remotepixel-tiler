@@ -48,7 +48,7 @@ def search():
     row = query_args['row']
     full = query_args.get('full', True)
 
-    data = landsat_search(path, row, full)
+    data = list(landsat_search(path, row, full))
     info = {
         'request': {'path': path, 'row': row, 'full': full},
         'meta': {'found': len(data)},

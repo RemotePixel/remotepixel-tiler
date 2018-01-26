@@ -6,7 +6,7 @@ iam:
        - "s3:ListBucket"
      Resource:
        - "arn:aws:s3:::cbers-pds*"
-        - "arn:aws:s3:::cbers-meta-pds*"
+       - "arn:aws:s3:::cbers-meta-pds*"
 
 env:
   GDAL_CACHEMAX: 75%
