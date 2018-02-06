@@ -1,0 +1,35 @@
+region: eu-central-1
+iam:
+  -  Effect: "Allow"
+     Action:
+       - "s3:ListBucket"
+       - "s3:GetObject"
+     Resource:
+       - "arn:aws:s3:::sentinel-s2*"
+       - "arn:aws:s3:::sentinel-s1*"
+
+env:
+  GDAL_DATA: /var/task/share/gdal
+  GDAL_CACHEMAX: 75%
+  VSI_CACHE: TRUE
+  VSI_CACHE_SIZE: 536870912
+  GDAL_DISABLE_READDIR_ON_OPEN: TRUE
+  CPL_VSIL_CURL_ALLOWED_EXTENSIONS: ".jp2,.ovr"
+  TOKEN: ${file(./config.json):token}
+
+functions:
+  tiler:
+    handler: app.sentinel.APP
+    alarms:
+      - functionInvocations
+      - functionErrors
+      - functionThrottles
+    memorySize: 1536
+    timeout: 20
+    events:
+      - http:
+          path: /{proxy+}
+          method: get
+          cors: true
+
+artifact: custom.zip

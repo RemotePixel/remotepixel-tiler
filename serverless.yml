@@ -1,0 +1,37 @@
+service: ${opt:sat}-tiler
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: ${opt:stage, 'production'}
+  region: ${file(./satellites/${opt:sat}.yml):region}
+  iamRoleStatements: ${file(./satellites/${opt:sat}.yml):iam}
+  deploymentBucket: remotepixel-${self:provider.region}
+  environment: ${file(./satellites/${opt:sat}.yml):env}
+
+custom:
+  apigwBinary:
+    types:
+      - '*/*'
+  alerts:
+    dashboards: false
+    topics:
+      alarm:
+        topic: ${self:service}-${self:provider.stage}-alerts-alarm
+        notifications:
+          - protocol: email
+            endpoint: ${file(./config.json):mail}
+    definitions:
+      functionInvocations:
+        threshold: 10000
+      functionErrors:
+        threshold: 100
+
+plugins:
+  - serverless-plugin-aws-alerts
+  - serverless-apigw-binary
+
+package:
+  artifact: ${file(./satellites/${opt:sat}.yml):artifact}
+
+functions: ${file(./satellites/${opt:sat}.yml):functions}
