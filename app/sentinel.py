@@ -123,7 +123,7 @@ def ratio(scene, tile_z, tile_x, tile_y, tileformat):
     rtile = np.where(mask, linear_rescale(tile, in_range=range_value, out_range=[0, 255]), 0).astype(np.uint8)
     img = array_to_img(rtile, color_map=get_colormap(name='cfastie'), mask=mask)
     str_img = b64_encode_img(img, tileformat)
-    return ('OK', f'image/{tileformat}', str_im
+    return ('OK', f'image/{tileformat}', str_img)
 
 
 @APP.route('/favicon.ico', methods=['GET'], cors=True)
