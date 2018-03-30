@@ -10,6 +10,8 @@ provider:
   environment: ${file(./satellites/${opt:sat}.yml):env}
 
 custom:
+  contentEncoding:
+    minimumCompressionSize: 0
   apigwBinary:
     types:
       - '*/*'
@@ -29,6 +31,7 @@ custom:
 
 plugins:
   - serverless-plugin-aws-alerts
+  - serverless-content-encoding
   - serverless-apigw-binary
 
 package:

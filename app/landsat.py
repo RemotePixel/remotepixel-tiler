@@ -109,7 +109,6 @@ def ratio(scene, tile_z, tile_x, tile_y, tileformat):
     query_args = query_args if isinstance(query_args, dict) else {}
 
     ratio_value = query_args['ratio']
-    APP.log.debug(f'{ratio_value}')
 
     range_value = query_args.get('range', [-1, 1])
 
