@@ -6,11 +6,13 @@ import json
 import numpy as np
 
 from rio_tiler import main
+from rio_rgbify import encoders
 from rio_tiler.utils import (array_to_img,
                              linear_rescale,
                              get_colormap,
                              expression,
-                             b64_encode_img)
+                             b64_encode_img,
+                             mapzen_elevation_rgb)
 
 from lambda_proxy.proxy import API
 
@@ -57,6 +59,15 @@ def tile(tile_z, tile_x, tile_y, tileformat):
                            tilesize=tilesize,
                            nodata=nodata)
 
+    hillshade = query_args.get('hillshade', None)
+    if hillshade:
+        if hillshade == 'mapbox':
+            tile = encoders.data_to_rgb(tile, -10000, 1)
+        elif hillshade == 'mapzen':
+            tile = mapzen_elevation_rgb.data_to_rgb(tile)
+        else:
+            return ('NOK', 'text/plain', 'Invalid "hillshade" value')
+
     img = array_to_img(tile, mask=mask)
     str_img = b64_encode_img(img, tileformat)
     return ('OK', f'image/{tileformat}', str_img)
@@ -102,4 +113,4 @@ def ratio(tile_z, tile_x, tile_y, tileformat):
 @APP.route('/favicon.ico', methods=['GET'], cors=True)
 def favicon():
     """Favicon."""
-    return('NOK', 'text/plain', '')
+    return ('NOK', 'text/plain', '')

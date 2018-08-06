@@ -3,18 +3,17 @@ SHELL = /bin/bash
 
 wheel:
 	docker build -f Dockerfiles/wheel --tag lambda:latest .
-	docker run -w /var/task/ --name lambda -itd lambda:latest
+	docker run -w /var/task/ --name lambda -itd lambda:latest /bin/bash
 	docker cp lambda:/tmp/package.zip wheel.zip
 	docker stop lambda
 	docker rm lambda
 
 custom:
 	docker build -f Dockerfiles/custom --tag lambda:latest .
-	docker run -w /var/task/ --name lambda -itd lambda:latest
+	docker run -w /var/task/ --name lambda -itd lambda:latest /bin/bash
 	docker cp lambda:/tmp/package.zip custom.zip
 	docker stop lambda
 	docker rm lambda
-
 
 
 test-landsat:
@@ -33,7 +32,7 @@ test-landsat:
 		--env VSI_CACHE_SIZE=536870912 \
 		--env TOKEN="yo" \
 		-itd \
-		lambda:latest
+		lambda:latest /bin/bash
 	docker exec -it lambda bash -c 'unzip -q /tmp/package.zip -d /var/task/'
 	docker exec -it lambda bash -c 'pip3 install boto3 jmespath python-dateutil -t /var/task'
 	docker exec -it lambda python3 -c 'from app.landsat import APP; assert APP({"path": "/bounds/LC80230312016320LGN00", "queryStringParameters": {"access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None)'
@@ -62,7 +61,7 @@ test-cbers:
 		--env VSI_CACHE_SIZE=536870912 \
 		--env TOKEN="yo" \
 		-itd \
-		lambda:latest
+		lambda:latest /bin/bash
 	docker exec -it lambda bash -c 'unzip -q /tmp/package.zip -d /var/task/'
 	docker exec -it lambda bash -c 'pip3 install boto3 jmespath python-dateutil -t /var/task'
 	docker exec -it lambda python3 -c 'from app.cbers import APP; assert APP({"path": "/bounds/CBERS_4_MUX_20171121_057_094_L2", "queryStringParameters": {"access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None)'
@@ -89,7 +88,7 @@ test-main:
 		--env VSI_CACHE=TRUE \
 		--env VSI_CACHE_SIZE=536870912 \
 		-itd \
-		lambda:latest
+		lambda:latest /bin/bash
 	docker exec -it lambda bash -c 'unzip -q /tmp/package.zip -d /var/task/'
 	docker exec -it lambda bash -c 'pip3 install boto3 jmespath python-dateutil -t /var/task'
 	docker exec -it lambda python3 -c 'from app.main import APP; assert APP({"path": "/bounds", "queryStringParameters": {"url": "https://oin-hotosm.s3.amazonaws.com/5ac626e091b5310010e0d482/0/5ac626e091b5310010e0d483.tif"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None)'
@@ -116,7 +115,7 @@ test-sentinel:
 		--env VSI_CACHE_SIZE=536870912 \
 		--env TOKEN="yo" \
 		-itd \
-		lambda:latest
+		lambda:latest /bin/bash
 	docker exec -it lambda bash -c 'unzip -q /tmp/package.zip -d /var/task'
 	docker exec -it lambda bash -c 'pip3 install boto3 jmespath python-dateutil -t /var/task'
 	docker exec -it lambda python3 -c 'from app.sentinel import APP; assert APP({"path": "/sentinel/bounds/S2A_tile_20161202_16SDG_0", "queryStringParameters": {"pmin":"2", "pmax":"99.8", "access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None)'
