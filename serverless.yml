@@ -8,6 +8,10 @@ provider:
   iamRoleStatements: ${file(./satellites/${opt:sat}.yml):iam}
   deploymentBucket: remotepixel-${self:provider.region}
   environment: ${file(./satellites/${opt:sat}.yml):env}
+  usagePlan:
+    throttle:
+      burstLimit: 200
+      rateLimit: 100
 
 custom:
   contentEncoding:
@@ -25,7 +29,7 @@ custom:
             endpoint: ${file(./config.json):mail}
     definitions:
       functionInvocations:
-        threshold: 10000
+        threshold: 500
       functionErrors:
         threshold: 100
 

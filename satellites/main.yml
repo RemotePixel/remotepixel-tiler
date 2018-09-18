@@ -2,15 +2,14 @@ region: us-east-1
 
 env:
   GDAL_CACHEMAX: 75%
-  GDAL_TIFF_OVR_BLOCKSIZE: 512
   VSI_CACHE: TRUE
   VSI_CACHE_SIZE: 536870912
-  GDAL_DISABLE_READDIR_ON_OPEN: TRUE
+  GDAL_DISABLE_READDIR_ON_OPEN: "EMPTY_DIR"
   CPL_VSIL_CURL_ALLOWED_EXTENSIONS: ".TIF,.tif,.jp2,.ovr"
 
 functions:
   tiler:
-    handler: app.main.APP
+    handler: remotepixel_tiler.main.APP
     alarms:
       - functionInvocations
       - functionErrors

@@ -13,14 +13,14 @@ env:
   GDAL_CACHEMAX: 75%
   VSI_CACHE: TRUE
   VSI_CACHE_SIZE: 536870912
-  GDAL_DISABLE_READDIR_ON_OPEN: TRUE
-  CPL_VSIL_CURL_ALLOWED_EXTENSIONS: ".jp2,.ovr"
+  GDAL_DISABLE_READDIR_ON_OPEN: "EMPTY_DIR"
+  CPL_VSIL_CURL_ALLOWED_EXTENSIONS: ".jp2"
   AWS_REQUEST_PAYER: "requester"
   TOKEN: ${file(./config.json):token}
 
 functions:
   tiler:
-    handler: app.sentinel.APP
+    handler: remotepixel_tiler.sentinel.APP
     alarms:
       - functionInvocations
       - functionErrors

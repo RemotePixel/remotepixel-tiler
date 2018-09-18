@@ -1,7 +1,11 @@
 FROM remotepixel/amazonlinux-gdal:2.3.1
 
-# Install rio-tiler
-RUN pip3 install rio-tiler==1.0rc1 lambda-proxy==0.0.4 aws-sat-api==2.0.1 --no-binary numpy,rasterio -t /tmp/vendored -U
+WORKDIR /tmp
+COPY setup.py setup.py
+COPY remotepixel_tiler/ remotepixel_tiler/
+
+# Install dependencies
+RUN pip3 install . --no-binary numpy,rasterio -t /tmp/vendored -U
 
 # Reduce Lambda package size to fit the 250Mb limit
 # Mostly based on https://github.com/jamesandersen/aws-machine-learning-demo
@@ -24,8 +28,6 @@ RUN find /tmp/vendored -type d -a -name '__pycache__' -print0 | xargs -0 rm -rf
 RUN find /tmp/vendored -type f -a -name '*.py' -print0 | xargs -0 rm -f
 
 RUN du -sh /tmp/vendored
-
-COPY app /tmp/vendored/app
 
 ################################################################################
 #                              CREATE ARCHIVE                                  #

@@ -1,6 +1,6 @@
 {
     "name": "remotepixel-tiler",
-    "version": "1.2.0",
+    "version": "3.0.0",
     "description": "Create a highly customizable `serverless` tile server for Amazon's Satellite Public Dataset",
     "devDependencies": {
         "serverless-plugin-aws-alerts": "^1.2.4",
