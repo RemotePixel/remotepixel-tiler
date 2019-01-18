@@ -13,10 +13,14 @@ env:
   GDAL_CACHEMAX: 75%
   VSI_CACHE: TRUE
   VSI_CACHE_SIZE: 536870912
+  CPL_TMPDIR: "/tmp"
+  GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
+  GDAL_HTTP_MULTIPLEX: YES
+  GDAL_HTTP_VERSION: 2
+  TOKEN: ${file(./config.json):token}
   GDAL_DISABLE_READDIR_ON_OPEN: "EMPTY_DIR"
   CPL_VSIL_CURL_ALLOWED_EXTENSIONS: ".jp2"
   AWS_REQUEST_PAYER: "requester"
-  TOKEN: ${file(./config.json):token}
 
 functions:
   tiler:
@@ -32,5 +36,3 @@ functions:
           path: /{proxy+}
           method: get
           cors: true
-
-artifact: custom.zip

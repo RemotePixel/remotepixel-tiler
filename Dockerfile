@@ -1,27 +1,11 @@
-FROM lambdalinux/baseimage-amzn:2017.03-004
-
-RUN yum update -y && yum upgrade -y
-RUN yum install -y python36-devel python36-pip
-RUN yum clean all
-
-ENV LANG=en_US.UTF-8
-ENV LC_ALL=en_US.UTF-8
-
-# install system libraries
-RUN yum makecache fast
-RUN yum install -y gcc gcc-c++ freetype-devel yum-utils findutils openssl-devel wget tar unzip zip bzip2 gzip
-RUN yum clean all
-
-RUN pip-3.6 install pip -U
-
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+FROM remotepixel/amazonlinux-gdal:2.4.0
 
 WORKDIR /tmp
 COPY setup.py setup.py
 COPY remotepixel_tiler/ remotepixel_tiler/
 
 # Install dependencies
-RUN pip3 install . --no-binary numpy -t /tmp/vendored -U
+RUN pip3 install . --no-binary numpy,rasterio -t /tmp/vendored -U
 
 # Reduce Lambda package size to fit the 250Mb limit
 # Mostly based on https://github.com/jamesandersen/aws-machine-learning-demo
@@ -45,8 +29,17 @@ RUN find /tmp/vendored -type f -a -name '*.py' -print0 | xargs -0 rm -f
 
 RUN du -sh /tmp/vendored
 
-# Create archive
+RUN cd $APP_DIR/local && find lib -name \*.so\* -exec strip {} \;
+RUN cd $APP_DIR/local && find lib64 -name \*.so\* -exec strip {} \;
+
+################################################################################
+#                              CREATE ARCHIVE                                  #
+################################################################################
+
 RUN cd /tmp/vendored && zip -r9q /tmp/package.zip *
+RUN cd $APP_DIR/local && zip -r9q --symlinks /tmp/package.zip lib/*.so*
+RUN cd $APP_DIR/local && zip -r9q --symlinks /tmp/package.zip lib64/*.so*
+RUN cd $APP_DIR/local && zip -r9q /tmp/package.zip share
 
 # Cleanup
 RUN rm -rf /tmp/vendored/

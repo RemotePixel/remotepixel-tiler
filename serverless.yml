@@ -29,7 +29,7 @@ custom:
             endpoint: ${file(./config.json):mail}
     definitions:
       functionInvocations:
-        threshold: 500
+        threshold: 1000
       functionErrors:
         threshold: 100
 
@@ -39,6 +39,6 @@ plugins:
   - serverless-apigw-binary
 
 package:
-  artifact: ${file(./satellites/${opt:sat}.yml):artifact}
+  artifact: package.zip
 
 functions: ${file(./satellites/${opt:sat}.yml):functions}
