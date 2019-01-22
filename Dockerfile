@@ -1,5 +1,7 @@
 FROM remotepixel/amazonlinux-gdal:2.4.0
 
+RUN yum install -y rsync
+
 WORKDIR /tmp
 COPY setup.py setup.py
 COPY remotepixel_tiler/ remotepixel_tiler/
@@ -29,8 +31,9 @@ RUN find /tmp/vendored -type f -a -name '*.py' -print0 | xargs -0 rm -f
 
 RUN du -sh /tmp/vendored
 
+# move /lib64 libraries to /lib (ref: https://github.com/mojodna/lambda-layer-rasterio/issues/2)
+RUN cd $APP_DIR/local && rsync -a lib64/ lib/
 RUN cd $APP_DIR/local && find lib -name \*.so\* -exec strip {} \;
-RUN cd $APP_DIR/local && find lib64 -name \*.so\* -exec strip {} \;
 
 ################################################################################
 #                              CREATE ARCHIVE                                  #
@@ -38,7 +41,6 @@ RUN cd $APP_DIR/local && find lib64 -name \*.so\* -exec strip {} \;
 
 RUN cd /tmp/vendored && zip -r9q /tmp/package.zip *
 RUN cd $APP_DIR/local && zip -r9q --symlinks /tmp/package.zip lib/*.so*
-RUN cd $APP_DIR/local && zip -r9q --symlinks /tmp/package.zip lib64/*.so*
 RUN cd $APP_DIR/local && zip -r9q /tmp/package.zip share
 
 # Cleanup

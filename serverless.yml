@@ -10,8 +10,8 @@ provider:
   environment: ${file(./satellites/${opt:sat}.yml):env}
   usagePlan:
     throttle:
-      burstLimit: 200
-      rateLimit: 100
+      burstLimit: 1000
+      rateLimit: 500
 
 custom:
   contentEncoding:
