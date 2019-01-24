@@ -11,9 +11,10 @@ package:
 	docker rm remotepixeltiler
 
 shell:
+	docker build --tag remotepixeltiler:latest .
 	docker run \
 		--name lambda \
-		-w /var/runtime/ \
+		-w /var/task/ \
 		--volume $(shell pwd)/:/local \
 		--env GDAL_CACHEMAX=75% \
 	  --env VSI_CACHE=TRUE \
@@ -22,11 +23,9 @@ shell:
 	  --env GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES \
 		--env GDAL_HTTP_MULTIPLEX=YES \
 	  --env GDAL_HTTP_VERSION=2 \
-		--env PYTHONPATH=/var/runtime \
-		--env GDAL_DATA=/var/runtime/share/gdal \
 		--env CPL_DEBUG=ON \
 		--rm \
-		-it lambci/lambda:build-python3.6 bash
+		-it remotepixeltiler:latest /bin/bash
 
 
 test-landsat: package
@@ -36,8 +35,7 @@ test-landsat: package
 		--env AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 		--env AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
  		--env AWS_REGION=us-west-2 \
-		--env PYTHONPATH=/var/runtime \
-		--env GDAL_DATA=/var/runtime/share/gdal \
+		--env GDAL_DATA=/var/task/share/gdal \
 	  --env GDAL_CACHEMAX=75% \
 	  --env VSI_CACHE=TRUE \
 	  --env VSI_CACHE_SIZE=536870912 \
@@ -50,7 +48,7 @@ test-landsat: package
 	  --env CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".TIF,.ovr" \
 		-itd \
 		lambci/lambda:build-python3.6 bash
-	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/runtime/'
+	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/task/'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.landsat import APP; print(APP({"path": "/bounds/LC80230312016320LGN00", "queryStringParameters": {"access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.landsat import APP; print(APP({"path": "/metadata/LC80230312016320LGN00", "queryStringParameters": {"pmin":"2", "pmax":"99.8", "access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.landsat import APP; print(APP({"path": "/processing/LC80230312016320LGN00/8/65/94.png", "queryStringParameters": {"ratio":"(b5-b4)/(b5+b4)", "access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
@@ -66,8 +64,7 @@ test-cbers: package
 		--env AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 		--env AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
  		--env AWS_REGION=us-east-1 \
-		--env PYTHONPATH=/var/runtime \
-		--env GDAL_DATA=/var/runtime/share/gdal \
+		--env GDAL_DATA=/var/task/share/gdal \
 	  --env GDAL_CACHEMAX=75% \
 	  --env VSI_CACHE=TRUE \
 	  --env VSI_CACHE_SIZE=536870912 \
@@ -81,7 +78,7 @@ test-cbers: package
 	  --env AWS_REQUEST_PAYER="requester" \
 		-itd \
 		lambci/lambda:build-python3.6 bash
-	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/runtime/'
+	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/task/'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.cbers import APP; print(APP({"path": "/search", "queryStringParameters": {"row": "057", "path": "094", "access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.cbers import APP; print(APP({"path": "/bounds/CBERS_4_MUX_20171121_057_094_L2", "queryStringParameters": {"access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.cbers import APP; print(APP({"path": "/metadata/CBERS_4_MUX_20171121_057_094_L2", "queryStringParameters": {"pmin":"2", "pmax":"99.8", "access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
@@ -98,8 +95,7 @@ test-main: package
 		--env AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 		--env AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
  		--env AWS_REGION=us-east-1 \
-		--env PYTHONPATH=/var/runtime \
-		--env GDAL_DATA=/var/runtime/share/gdal \
+		--env GDAL_DATA=/var/task/share/gdal \
 	  --env GDAL_CACHEMAX=75% \
 	  --env VSI_CACHE=TRUE \
 	  --env VSI_CACHE_SIZE=536870912 \
@@ -112,7 +108,7 @@ test-main: package
 	  --env CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".TIF,.tif,.jp2,.vrt" \
 		-itd \
 		lambci/lambda:build-python3.6 bash
-	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/runtime/'
+	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/task/'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.main import APP; print(APP({"path": "/bounds", "queryStringParameters": {"url": "https://oin-hotosm.s3.amazonaws.com/5ac626e091b5310010e0d482/0/5ac626e091b5310010e0d483.tif"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.main import APP; print(APP({"path": "/processing/19/319379/270522.png", "queryStringParameters": {"url": "https://oin-hotosm.s3.amazonaws.com/5ac626e091b5310010e0d482/0/5ac626e091b5310010e0d483.tif", "ratio":"(b3-b2)/(b3+b2)"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.main import APP; print(APP({"path": "/tiles/19/319379/270522.png", "queryStringParameters": {"url": "https://oin-hotosm.s3.amazonaws.com/5ac626e091b5310010e0d482/0/5ac626e091b5310010e0d483.tif"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
@@ -127,8 +123,8 @@ test-sentinel: package
 		--env AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 		--env AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
  		--env AWS_REGION=eu-central-1 \
-		--env PYTHONPATH=/var/runtime \
-		--env GDAL_DATA=/var/runtime/share/gdal \
+		--env PYTHONPATH=/var/task \
+		--env GDAL_DATA=/var/task/share/gdal \
 	  --env GDAL_CACHEMAX=75% \
 	  --env VSI_CACHE=TRUE \
 	  --env VSI_CACHE_SIZE=536870912 \
@@ -142,7 +138,7 @@ test-sentinel: package
 	  --env AWS_REQUEST_PAYER="requester" \
 		-itd \
 		lambci/lambda:build-python3.6 bash
-	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/runtime/'
+	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/task/'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.sentinel import APP; print(APP({"path": "/s2/search", "queryStringParameters": {"utm":17, "grid":"NA", "lat":"S", "bbox":"-81.00082397460938,36.050209274876195,-79.77035522460938,36.73888412439432", "access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.sentinel import APP; print(APP({"path": "/s2/bounds/S2A_tile_20161202_16SDG_0", "queryStringParameters": {"access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
 	docker exec -it lambda python3.6 -c 'from remotepixel_tiler.sentinel import APP; print(APP({"path": "/s2/metadata/S2A_tile_20161202_16SDG_0", "queryStringParameters": {"pmin":"2", "pmax":"99.8", "access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET"}, None))'
