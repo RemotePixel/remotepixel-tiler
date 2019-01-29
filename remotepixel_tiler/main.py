@@ -12,9 +12,10 @@ from rio_tiler.utils import (
     linear_rescale,
     get_colormap,
     expression,
-    b64_encode_img,
     mapzen_elevation_rgb,
 )
+
+from remotepixel_tiler.utils import img_to_buffer
 
 from lambda_proxy.proxy import API
 
@@ -34,7 +35,13 @@ def bounds(url=None):
     return ("OK", "application/json", json.dumps(info))
 
 
-@APP.route("/tiles/<int:z>/<int:x>/<int:y>.<ext>", methods=["GET"], cors=True)
+@APP.route(
+    "/tiles/<int:z>/<int:x>/<int:y>.<ext>",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def tile(
     tile_z,
     tile_x,
@@ -45,6 +52,7 @@ def tile(
     tile=512,
     nodata=None,
     dem=None,
+    colormap=None,
 ):
     """Handle tile requests."""
     if tileformat == "jpg":
@@ -73,12 +81,21 @@ def tile(
         else:
             return ("NOK", "text/plain", 'Invalid "dem" mode')
 
-    img = array_to_img(tile, mask=mask)
-    str_img = b64_encode_img(img, tileformat)
-    return ("OK", f"image/{tileformat}", str_img)
+    options = dict(mask=mask)
+    if colormap:
+        options.update(color_map=get_colormap(name=colormap))
+
+    img = array_to_img(tile, **options)
+    return ("OK", f"image/{tileformat}", img_to_buffer(img, tileformat))
 
 
-@APP.route("/processing/<int:z>/<int:x>/<int:y>.<ext>", methods=["GET"], cors=True)
+@APP.route(
+    "/processing/<int:z>/<int:x>/<int:y>.<ext>",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def ratio(
     tile_z, tile_x, tile_y, tileformat, url=None, ratio=None, range=[-1, 1], tile=256
 ):
@@ -101,8 +118,7 @@ def ratio(
     ).astype(np.uint8)
 
     img = array_to_img(rtile, color_map=get_colormap(name="cfastie"), mask=mask)
-    str_img = b64_encode_img(img, tileformat)
-    return ("OK", f"image/{tileformat}", str_img)
+    return ("OK", f"image/{tileformat}", img_to_buffer(img, tileformat))
 
 
 @APP.route("/favicon.ico", methods=["GET"], cors=True)

@@ -14,8 +14,6 @@ provider:
       rateLimit: 500
 
 custom:
-  contentEncoding:
-    minimumCompressionSize: 0
   apigwBinary:
     types:
       - '*/*'

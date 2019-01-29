@@ -13,7 +13,6 @@ RUN pip3 install . --no-binary numpy,rasterio -t $PACKAGE_PREFIX -U
 ################################################################################
 #                            REDUCE PACKAGE SIZE                               #
 ################################################################################
-
 RUN find $PACKAGE_PREFIX -name "*-info" -type d -exec rm -rdf {} +
 RUN rm -rdf $PACKAGE_PREFIX/boto3/ \
   && rm -rdf $PACKAGE_PREFIX/botocore/ \
@@ -34,7 +33,6 @@ RUN cd $PREFIX && find lib64 -name \*.so\* -exec strip {} \;
 ################################################################################
 #                              CREATE ARCHIVE                                  #
 ################################################################################
-
 RUN cd $PACKAGE_PREFIX && zip -r9q /tmp/package.zip *
 RUN cd $PREFIX && zip -r9q --symlinks /tmp/package.zip lib/*.so*
 RUN cd $PREFIX && zip -r9q --symlinks /tmp/package.zip lib64/*.so*

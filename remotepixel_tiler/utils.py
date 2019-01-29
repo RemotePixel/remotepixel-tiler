@@ -2,7 +2,10 @@
 
 import requests
 import datetime
+from io import BytesIO
 from urllib.parse import urlencode
+
+from rio_tiler import profiles as TileProfiles
 
 opensearchurl = "http://opensearch.sentinel-hub.com/resto/api/collections"
 
@@ -10,6 +13,32 @@ opensearchurl = "http://opensearch.sentinel-hub.com/resto/api/collections"
 def zeroPad(n, l):
     """Add leading 0."""
     return str(n).zfill(l)
+
+
+def img_to_buffer(img, tileformat):
+    """Convert a Pillow image to an base64 encoded string.
+
+    Attributes
+    ----------
+    img : object
+        Pillow image
+    tileformat : str
+        Image format to return (Accepted: "jpg" or "png")
+
+    Returns
+    -------
+    buffer
+
+    """
+    params = TileProfiles.get(tileformat)
+
+    if tileformat == "jpeg":
+        img = img.convert("RGB")
+
+    sio = BytesIO()
+    img.save(sio, tileformat.upper(), **params)
+    sio.seek(0)
+    return sio.getvalue()
 
 
 def sentinel2_search(

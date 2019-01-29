@@ -6,15 +6,10 @@ import json
 import numpy as np
 
 from rio_tiler import cbers
-from rio_tiler.utils import (
-    array_to_img,
-    linear_rescale,
-    get_colormap,
-    expression,
-    b64_encode_img,
-)
-
+from rio_tiler.utils import array_to_img, linear_rescale, get_colormap, expression
 from aws_sat_api.search import cbers as cbers_search
+
+from remotepixel_tiler.utils import img_to_buffer
 
 from lambda_proxy.proxy import API
 
@@ -65,6 +60,8 @@ def metadata(scene, pmin=2, pmax=98):
     methods=["GET"],
     cors=True,
     token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
 )
 def tile(scene, tile_z, tile_x, tile_y, tileformat, rgb="7,6,5", histo=None, tile=256):
     """Handle tile requests."""
@@ -95,8 +92,7 @@ def tile(scene, tile_z, tile_x, tile_y, tileformat, rgb="7,6,5", histo=None, til
             0,
         )
     img = array_to_img(rtile, mask=mask)
-    str_img = b64_encode_img(img, tileformat)
-    return ("OK", f"image/{tileformat}", str_img)
+    return ("OK", f"image/{tileformat}", img_to_buffer(img, tileformat))
 
 
 @APP.route(
@@ -104,6 +100,8 @@ def tile(scene, tile_z, tile_x, tile_y, tileformat, rgb="7,6,5", histo=None, til
     methods=["GET"],
     cors=True,
     token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
 )
 def ratio(
     scene, tile_z, tile_x, tile_y, tileformat, ratio=None, range=[-1, 1], tile=256
@@ -125,8 +123,7 @@ def ratio(
         mask, linear_rescale(tile, in_range=range, out_range=[0, 255]), 0
     ).astype(np.uint8)
     img = array_to_img(rtile, color_map=get_colormap(name="cfastie"), mask=mask)
-    str_img = b64_encode_img(img, tileformat)
-    return ("OK", f"image/{tileformat}", str_img)
+    return ("OK", f"image/{tileformat}", img_to_buffer(img, tileformat))
 
 
 @APP.route("/favicon.ico", methods=["GET"], cors=True)

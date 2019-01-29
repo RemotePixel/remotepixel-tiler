@@ -12,7 +12,7 @@ with open('remotepixel_tiler/__init__.py') as f:
 # Runtime requirements.
 inst_reqs = [
     "rio-tiler==1.0rc1",
-    "lambda-proxy~=1.1",
+    "lambda-proxy==2.0b8",
     "aws-sat-api~=2.0",
     "rio_rgbify",
     "requests"
