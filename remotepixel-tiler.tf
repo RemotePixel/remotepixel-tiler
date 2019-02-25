@@ -3,7 +3,7 @@ variable "project" {
   default     = "remotepixel-tiler"
 }
 
-variable "stage_name" {
+variable "stage" {
   description = "The stage name(production/staging/etc..)"
   default     = "production"
 }
@@ -17,7 +17,7 @@ module "landsat" {
 
   # General options
   project    = "${var.project}"
-  stage_name = "${var.stage_name}"
+  stage_name = "${var.stage}"
   region     = "us-west-2"
 
   # Lambda options
@@ -45,7 +45,7 @@ module "landsat" {
   }
 }
 
-resource "aws_iam_role_policy" "permissions" {
+resource "aws_iam_role_policy" "permissions-landsat" {
   name = "${module.landsat.lambda_role}-bucket-permission"
   role = "${module.landsat.lambda_role_id}"
 
@@ -71,7 +71,7 @@ module "cbers" {
 
   # General options
   project    = "${var.project}"
-  stage_name = "${var.stage_name}"
+  stage_name = "${var.stage}"
   region     = "us-east-1"
 
   # Lambda options
@@ -100,7 +100,7 @@ module "cbers" {
   }
 }
 
-resource "aws_iam_role_policy" "permissions" {
+resource "aws_iam_role_policy" "permissions-cbers" {
   name = "${module.cbers.lambda_role}-bucket-permission"
   role = "${module.cbers.lambda_role_id}"
 
@@ -129,7 +129,7 @@ module "sentinel" {
 
   # General options
   project    = "${var.project}"
-  stage_name = "${var.stage_name}"
+  stage_name = "${var.stage}"
   region     = "eu-central-1"
 
   # Lambda options
@@ -159,7 +159,7 @@ module "sentinel" {
   }
 }
 
-resource "aws_iam_role_policy" "permissions" {
+resource "aws_iam_role_policy" "permissions-sentinel" {
   name = "${module.sentinel.lambda_role}-bucket-permission"
   role = "${module.sentinel.lambda_role_id}"
 
@@ -188,7 +188,7 @@ module "cogeo" {
 
   # General options
   project    = "${var.project}"
-  stage_name = "${var.stage_name}"
+  stage_name = "${var.stage}"
   region     = "us-east-1"
 
   # Lambda options
@@ -197,7 +197,7 @@ module "cogeo" {
   lambda_memory  = 512
   lambda_timeout = 5
   lambda_package = "package.zip"
-  lambda_handler = "remotepixel_tiler.sentinel.APP"
+  lambda_handler = "remotepixel_tiler.cogeo.APP"
 
   lambda_env = {
     PYTHONWARNINGS                     = "ignore"
@@ -216,7 +216,7 @@ module "cogeo" {
   }
 }
 
-resource "aws_iam_role_policy" "permissions" {
+resource "aws_iam_role_policy" "permissions-cogeo" {
   name = "${module.cogeo.lambda_role}-bucket-permission"
   role = "${module.cogeo.lambda_role_id}"
 

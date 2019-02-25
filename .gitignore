@@ -72,5 +72,5 @@ target/
 .python-version
 
 # Terraform
-.terraform
+.terraform*
 terraform.*
