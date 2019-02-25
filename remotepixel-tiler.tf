@@ -1,11 +1,11 @@
-variable "stage_name" {
-  description = "The stage name(production/staging/etc..)"
-  default     = "production"
-}
-
 variable "project" {
   description = "The project name"
   default     = "remotepixel-tiler"
+}
+
+variable "stage_name" {
+  description = "The stage name(production/staging/etc..)"
+  default     = "production"
 }
 
 variable "token" {
