@@ -1,42 +1,33 @@
 # remotepixel-tiler
-Sentinel / Landsat / CBERS serverless tile server
 
-Bundle of `landsat-tiler`, `sentinel-tiler` and `cbers-tiler` powering RemotePixel [viewer](https://viewer.remotepixel.ca).
+Sentinel / Landsat / CBERS / COGEO Serverless dynamic tiler
+
+Bundle of `landsat-tiler`, `sentinel-tiler`, `cbers-tiler` and `cogeo-tiler` powering RemotePixel [viewer](https://viewer.remotepixel.ca).
 
 ![viewer](https://user-images.githubusercontent.com/10407788/34139036-873c23e2-e440-11e7-9699-a2da6046a494.jpg)
 
-# Features
-While the lambda function are the same is found in the original repo (landsat-tiler ...) I added two features:
-- **Alarms**: get mail notifcation when something is not right  
-- **Token**: pseudo secure endpoint using user defined Token
-
-# Installation
+# Deployment
 
 ##### Requirement
   - AWS Account
+  - Terraform
   - Docker
-  - node + npm
 
 ```bash
 #Clone the repo
 $ git clone https://github.com/RemotePixel/remotepixel-tiler.git
 $ cd remotepixel-tiler/
 
-# set Token and Email
-$ vi config.json
-{"token": "this is a token I defined", "mail": "your@email.com"}
 
 $ docker login
 
 # Fetch Amazon linux AMI docker container + Install Python modules + create package
 # Create package using custom GDAL install
-$ make package
-
-# Install serverless and plugin
-$ npm install
+$ make package && make test
 
 # Deploy sentinel, landsat and cbers lambda functions
-$ make deploy
+$ terraform init
+$ terraform apply --var token=MySuperSecretToken
 ```
 
 #### Infos & links

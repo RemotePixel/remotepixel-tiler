@@ -1,16 +1,12 @@
 """app.landsat: handle request for Landsat-tiler."""
 
-import re
 import json
 
-import numpy as np
-
 from rio_tiler import landsat8
-from rio_tiler.utils import array_to_img, linear_rescale, get_colormap, expression
+from rio_tiler.profiles import img_profiles
+from rio_tiler.utils import array_to_image, get_colormap, expression
 
-from aws_sat_api.search import landsat as landsat_search
-
-from remotepixel_tiler.utils import img_to_buffer
+from .utils import _postprocess
 
 from lambda_proxy.proxy import API
 
@@ -21,32 +17,28 @@ class LandsatTilerError(Exception):
     """Base exception class."""
 
 
-@APP.route("/search", methods=["GET"], cors=True, token=True)
-def search(path=None, row=None, full=True):
-    """Handle search requests."""
-    if not path:
-        raise LandsatTilerError("Missing 'path' parameter")
-    if not row:
-        raise LandsatTilerError("Missing 'row' parameter")
-
-    data = list(landsat_search(path, row, full))
-    info = {
-        "request": {"path": path, "row": row, "full": full},
-        "meta": {"found": len(data)},
-        "results": data,
-    }
-
-    return ("OK", "application/json", json.dumps(info))
-
-
-@APP.route("/bounds/<scene>", methods=["GET"], cors=True, token=True)
+@APP.route(
+    "/bounds/<scene>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def bounds(scene):
     """Handle bounds requests."""
     info = landsat8.bounds(scene)
     return ("OK", "application/json", json.dumps(info))
 
 
-@APP.route("/metadata/<scene>", methods=["GET"], cors=True, token=True)
+@APP.route(
+    "/metadata/<scene>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def metadata(scene, pmin=2, pmax=98):
     """Handle metadata requests."""
     pmin = float(pmin) if isinstance(pmin, str) else pmin
@@ -63,80 +55,62 @@ def metadata(scene, pmin=2, pmax=98):
     payload_compression_method="gzip",
     binary_b64encode=True,
 )
-def tile(
+def tiles(
     scene,
     tile_z,
     tile_x,
     tile_y,
     tileformat,
-    rgb="4,3,2",
-    histo=None,
-    tile=256,
+    scale=1,
+    bands=None,
+    expr=None,
+    rescale=None,
+    color_ops=None,
+    color_map=None,
     pan=False,
 ):
     """Handle tile requests."""
     if tileformat == "jpg":
         tileformat = "jpeg"
 
-    bands = tuple(re.findall(r"\d+", rgb))
+    if bands and expr:
+        raise LandsatTilerError("Cannot pass bands and expression")
+    if not bands and not expr:
+        raise LandsatTilerError("Need bands or expression")
 
-    if not histo:
-        histo = ";".join(["0,16000"] * len(bands))
-    histoCut = re.findall(r"\d+,\d+", histo)
-    histoCut = list(map(lambda x: list(map(int, x.split(","))), histoCut))
+    if bands:
+        bands = tuple(bands.split(",")) if isinstance(bands, str) else bands
 
-    if len(bands) != len(histoCut):
-        raise LandsatTilerError(
-            "The number of bands doesn't match the number of histogramm values"
-        )
-
-    tilesize = int(tile) if isinstance(tile, str) else tile
+    scale = int(scale) if isinstance(scale, str) else scale
+    tilesize = scale * 256
 
     pan = True if pan else False
-    tile, mask = landsat8.tile(
-        scene, tile_x, tile_y, tile_z, bands, pan=pan, tilesize=tilesize
+
+    if expr is not None:
+        tile, mask = expression(
+            scene, tile_x, tile_y, tile_z, expr, tilesize=tilesize, pan=pan
+        )
+
+    elif bands is not None:
+        tile, mask = landsat8.tile(
+            scene, tile_x, tile_y, tile_z, bands=bands, tilesize=tilesize, pan=pan
+        )
+
+    rtile, rmask = _postprocess(
+        tile, mask, tilesize, rescale=rescale, color_ops=color_ops
     )
 
-    rtile = np.zeros((len(bands), tilesize, tilesize), dtype=np.uint8)
-    for bdx in range(len(bands)):
-        rtile[bdx] = np.where(
-            mask,
-            linear_rescale(tile[bdx], in_range=histoCut[bdx], out_range=[0, 255]),
-            0,
-        )
-    img = array_to_img(rtile, mask=mask)
-    return ("OK", f"image/{tileformat}", img_to_buffer(img, tileformat))
+    if color_map:
+        color_map = get_colormap(color_map, format="gdal")
 
-
-@APP.route(
-    "/processing/<scene>/<int:z>/<int:x>/<int:y>.<ext>",
-    methods=["GET"],
-    cors=True,
-    token=True,
-    payload_compression_method="gzip",
-    binary_b64encode=True,
-)
-def ratio(
-    scene, tile_z, tile_x, tile_y, tileformat, ratio=None, range=[-1, 1], tile=256
-):
-    """Handle processing requests."""
-    if tileformat == "jpg":
-        tileformat = "jpeg"
-
-    if not ratio:
-        raise LandsatTilerError("Missing 'ratio' parameter")
-
-    tilesize = int(tile) if isinstance(tile, str) else tile
-
-    tile, mask = expression(scene, tile_x, tile_y, tile_z, ratio, tilesize=tilesize)
-    if len(tile.shape) == 2:
-        tile = np.expand_dims(tile, axis=0)
-
-    rtile = np.where(
-        mask, linear_rescale(tile, in_range=range, out_range=[0, 255]), 0
-    ).astype(np.uint8)
-    img = array_to_img(rtile, color_map=get_colormap(name="cfastie"), mask=mask)
-    return ("OK", f"image/{tileformat}", img_to_buffer(img, tileformat))
+    options = img_profiles.get("tileformat", {})
+    return (
+        "OK",
+        f"image/{tileformat}",
+        array_to_image(
+            rtile, rmask, img_format=tileformat, color_map=color_map, **options
+        ),
+    )
 
 
 @APP.route("/favicon.ico", methods=["GET"], cors=True)
