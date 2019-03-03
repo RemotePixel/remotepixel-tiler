@@ -29,7 +29,7 @@ jobs:
     docker:
       - image: remotepixel/amazonlinux-gdal:2.4.0
     environment:
-      - PACKAGE_PATH=package.zip
+      - PACKAGE_PATH=/root/remotepixel-tiler/package.zip
       - PACKAGE_TMP=/root/package
     working_directory: ~/remotepixel-tiler
     steps:
@@ -66,7 +66,6 @@ jobs:
     steps:
       - checkout
       - run: unzip -q package.zip -d /var/task/
-      - run: bin/tests.sh
 
 workflows:
   version: 2
