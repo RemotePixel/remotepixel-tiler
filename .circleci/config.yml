@@ -1,7 +1,7 @@
-version: 2.0
+version: 2
 
 jobs:
-  build:
+  test:
     docker:
       - image: remotepixel/amazonlinux-gdal:2.4.0
         environment:
@@ -14,9 +14,7 @@ jobs:
           - GDAL_HTTP_MULTIPLEX=YES
           - GDAL_HTTP_VERSION=2
           - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".TIF,.ovr,.jp2,.tif"
-
     working_directory: ~/remotepixel-tiler
-
     steps:
       - checkout
       - run:
@@ -38,8 +36,50 @@ jobs:
              ~/.local/bin/codecov
           when: always
 
+  package:
+    docker:
+      - image: remotepixel/amazonlinux-gdal:2.4.0
+        environment:
+          - PACKAGE_PATH=package.zip
+          - PACKAGE_TMP=/root/package
+    working_directory: ~/remotepixel-tiler
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/remotepixel-tiler
+      - run:
+          name: install requirements
+          command: pip3 install . --no-binary numpy,rasterio -t $PACKAGE_TMP -U
+      - run:
+          name: create package
+          command: bin/package.sh
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bin/tests.sh
+            - package.zip
+
 workflows:
-  version: 2.0
-  test:
+  version: 2
+  build_and_deploy:
     jobs:
-      - build
+      - test:
+          filters:
+            tags:
+              only: /.*/
+      - package:
+          requires:
+            - "package"
+          filters:
+            tags:
+              only: /^[0-9]+.*/
+            branches:
+              ignore: /.*/
+      # - deploy:
+      #     requires:
+      #       - "package"
+      #     filters:
+      #       tags:
+      #         only: /^[0-9]+.*/
+      #       branches:
+      #         ignore: /.*/
