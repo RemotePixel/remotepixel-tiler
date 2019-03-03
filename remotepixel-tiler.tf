@@ -12,6 +12,16 @@ variable "token" {
   description = "Secret token"
 }
 
+terraform {
+  backend "s3" {
+    bucket         = "remotepixel-tf-state"
+    key            = "remotepixel-state-store/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "remotepixel-tf-lock"
+    encrypt        = true
+  }
+}
+
 module "landsat" {
   source = "git@github.com:developmentseed/tf-lambda-proxy-apigw.git?ref=v1"
 
@@ -124,64 +134,64 @@ resource "aws_iam_role_policy" "permissions-cbers" {
 EOF
 }
 
-module "sentinel" {
-  source = "git@github.com:developmentseed/tf-lambda-proxy-apigw.git?ref=v1"
+# module "sentinel" {
+#   source = "git@github.com:developmentseed/tf-lambda-proxy-apigw.git?ref=v1"
 
-  # General options
-  project    = "${var.project}"
-  stage_name = "${var.stage}"
-  region     = "eu-central-1"
+#   # General options
+#   project    = "${var.project}"
+#   stage_name = "${var.stage}"
+#   region     = "eu-central-1"
 
-  # Lambda options
-  lambda_name    = "sentinel"
-  lambda_runtime = "python3.6"
-  lambda_memory  = 512
-  lambda_timeout = 5
-  lambda_package = "package.zip"
-  lambda_handler = "remotepixel_tiler.sentinel.APP"
+#   # Lambda options
+#   lambda_name    = "sentinel"
+#   lambda_runtime = "python3.6"
+#   lambda_memory  = 512
+#   lambda_timeout = 5
+#   lambda_package = "package.zip"
+#   lambda_handler = "remotepixel_tiler.sentinel.APP"
 
-  lambda_env = {
-    PYTHONWARNINGS                     = "ignore"
-    GDAL_DATA                          = "/var/task/share/gdal"
-    GDAL_CACHEMAX                      = "512"
-    VSI_CACHE                          = "TRUE"
-    VSI_CACHE_SIZE                     = "536870912"
-    CPL_TMPDIR                         = "/tmp"
-    GDAL_HTTP_MERGE_CONSECUTIVE_RANGES = "YES"
-    GDAL_HTTP_MULTIPLEX                = "YES"
-    GDAL_HTTP_VERSION                  = "2"
-    GDAL_DISABLE_READDIR_ON_OPEN       = "EMPTY_DIR"
-    CPL_VSIL_CURL_CHUNK_SIZE           = "2000000"
-    CPL_VSIL_CURL_ALLOWED_EXTENSIONS   = ".jp2"
-    AWS_REQUEST_PAYER                  = "requester"
-    TOKEN                              = "${var.token}"
-    MAX_THREADS                        = "20"
-  }
-}
+#   lambda_env = {
+#     PYTHONWARNINGS                     = "ignore"
+#     GDAL_DATA                          = "/var/task/share/gdal"
+#     GDAL_CACHEMAX                      = "512"
+#     VSI_CACHE                          = "TRUE"
+#     VSI_CACHE_SIZE                     = "536870912"
+#     CPL_TMPDIR                         = "/tmp"
+#     GDAL_HTTP_MERGE_CONSECUTIVE_RANGES = "YES"
+#     GDAL_HTTP_MULTIPLEX                = "YES"
+#     GDAL_HTTP_VERSION                  = "2"
+#     GDAL_DISABLE_READDIR_ON_OPEN       = "EMPTY_DIR"
+#     CPL_VSIL_CURL_CHUNK_SIZE           = "2000000"
+#     CPL_VSIL_CURL_ALLOWED_EXTENSIONS   = ".jp2"
+#     AWS_REQUEST_PAYER                  = "requester"
+#     TOKEN                              = "${var.token}"
+#     MAX_THREADS                        = "20"
+#   }
+# }
 
-resource "aws_iam_role_policy" "permissions-sentinel" {
-  name = "${module.sentinel.lambda_role}-bucket-permission"
-  role = "${module.sentinel.lambda_role_id}"
+# resource "aws_iam_role_policy" "permissions-sentinel" {
+#   name = "${module.sentinel.lambda_role}-bucket-permission"
+#   role = "${module.sentinel.lambda_role_id}"
 
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::sentinel-s2*",
-        "arn:aws:s3:::sentinel-s1*"
-      ]
-    }
-  ]
-}
-EOF
-}
+#   policy = <<EOF
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Effect": "Allow",
+#       "Action": [
+#         "s3:GetObject",
+#         "s3:ListBucket"
+#       ],
+#       "Resource": [
+#         "arn:aws:s3:::sentinel-s2*",
+#         "arn:aws:s3:::sentinel-s1*"
+#       ]
+#     }
+#   ]
+# }
+# EOF
+# }
 
 module "cogeo" {
   source = "git@github.com:developmentseed/tf-lambda-proxy-apigw.git?ref=v1"
@@ -250,10 +260,10 @@ output "cbers_endpoint" {
   value       = "${module.cbers.api_url}"
 }
 
-output "sentinel_endpoint" {
-  description = "Sentinel-2 dynamic tiler endpoint url"
-  value       = "${module.sentinel.api_url}"
-}
+# output "sentinel_endpoint" {
+#   description = "Sentinel-2 dynamic tiler endpoint url"
+#   value       = "${module.sentinel.api_url}"
+# }
 
 output "cogeo_endpoint" {
   description = "COGEO dynamic tiler endpoint url"

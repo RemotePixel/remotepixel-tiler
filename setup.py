@@ -20,6 +20,10 @@ inst_reqs = [
     "rio-color",
 ]
 
+extra_reqs = {
+    "test": ["pytest", "pytest-cov"],
+    "dev": ["pytest", "pytest-cov", "pre-commit"],
+}
 
 setup(
     name="remotepixel_tiler",
@@ -37,6 +41,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=inst_reqs,
+    extras_require=extra_reqs,
     entry_points={
         "console_scripts": ["remotepixel-tiler = remotepixel_tiler.scripts.cli:cli"]
     },

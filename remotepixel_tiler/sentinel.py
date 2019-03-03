@@ -65,12 +65,16 @@ def tile(
     bands=None,
     expr=None,
     rescale=None,
-    color_ops=None,
+    color_formula=None,
     color_map=None,
 ):
     """Handle tile requests."""
     if tileformat == "jpg":
-        tileformat = "jpeg"
+        driver = "jpeg"
+    elif tileformat == "jp2":
+        driver = "JP2OpenJPEG"
+    else:
+        driver = tileformat
 
     if bands and expr:
         raise SentinelTilerError("Cannot pass bands and expression")
@@ -92,19 +96,17 @@ def tile(
         )
 
     rtile, rmask = _postprocess(
-        tile, mask, tilesize, rescale=rescale, color_ops=color_ops
+        tile, mask, tilesize, rescale=rescale, color_formula=color_formula
     )
 
     if color_map:
         color_map = get_colormap(color_map, format="gdal")
 
-    options = img_profiles.get("tileformat", {})
+    options = img_profiles.get(driver, {})
     return (
         "OK",
         f"image/{tileformat}",
-        array_to_image(
-            rtile, rmask, img_format=tileformat, color_map=color_map, **options
-        ),
+        array_to_image(rtile, rmask, img_format=driver, color_map=color_map, **options),
     )
 
 

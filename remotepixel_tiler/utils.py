@@ -8,7 +8,7 @@ from rio_color.utils import scale_dtype, to_math_type
 from rio_tiler.utils import linear_rescale
 
 
-def _postprocess(tile, mask, tilesize, rescale=None, color_ops=None):
+def _postprocess(tile, mask, tilesize, rescale=None, color_formula=None):
     if tile is None:
         # Return empty tile
         tile = numpy.zeros((1, tilesize, tilesize), dtype=numpy.uint8)
@@ -26,8 +26,8 @@ def _postprocess(tile, mask, tilesize, rescale=None, color_ops=None):
                 )
             tile = tile.astype(numpy.uint8)
 
-        if color_ops:
-            for ops in parse_operations(color_ops):
+        if color_formula:
+            for ops in parse_operations(color_formula):
                 tile = scale_dtype(ops(to_math_type(tile)), numpy.uint8)
 
     return tile, mask

@@ -1,0 +1,45 @@
+version: 2.0
+
+jobs:
+  test:
+    docker:
+      - image: remotepixel/amazonlinux-gdal:2.4.0
+        environment:
+          - PYTHONWARNINGS=ignore
+          - GDAL_CACHEMAX=75%
+          - VSI_CACHE=TRUE
+          - VSI_CACHE_SIZE=536870912
+          - CPL_TMPDIR="/tmp"
+          - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
+          - GDAL_HTTP_MULTIPLEX=YES
+          - GDAL_HTTP_VERSION=2
+          - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".TIF,.ovr,.jp2,.tif"
+
+    working_directory: ~/remotepixel-tiler
+
+    steps:
+      - checkout
+      - run:
+          name: install requirements
+          command: pip3 install . --no-binary numpy,rasterio -U
+      - run:
+          name: install test dependencies
+          command: pip install pytest pytest-cov codecov pre-commit --user
+      - run:
+          name: run pytest
+          command:  ~/.local/bin/py.test ~/remotepixel-tiler/tests --cov remotepixel-tiler --cov-report term-missing -s -vv
+      - run:
+          name: run pre-commit
+          command:  ~/.local/bin/pre-commit run --all-files
+      - run:
+          name: upload coverage report
+          command: |
+             ~/.local/bin/coverage xml
+             ~/.local/bin/codecov
+          when: always
+
+workflows:
+  version: 2.0
+  test:
+    jobs:
+      - test
