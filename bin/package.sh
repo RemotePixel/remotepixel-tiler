@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "-----------------------"
-echo "Creating lambda package"
+echo "Creating lambda package ${PACKAGE_PATH}"
 echo "-----------------------"
 echo
 echo "Remove useless python files"

@@ -45,6 +45,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
+            - tests
             - package.zip
 
   "test-package":
@@ -62,10 +63,14 @@ jobs:
       - GDAL_HTTP_VERSION=2
       - GDAL_DISABLE_READDIR_ON_OPEN=TRUE
       - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".TIF,.ovr,.jp2,.tif"
-    working_directory: ~/remotepixel-tiler
+    working_directory: /var/task/
     steps:
-      - checkout
+      - attach_workspace:
+          at: /var/task/
       - run: unzip -q package.zip -d /var/task/
+      - run: pip install pytest pytest-cov
+      - run: py.test tests --cov remotepixel_tiler
+
 
 workflows:
   version: 2

@@ -21,6 +21,7 @@ package:
 test:
 	docker run \
 		--name lambda \
+		-w /var/task/ \
 		--volume $(shell pwd)/bin:/tmp/bin \
 		--volume $(shell pwd)/:/local \
 		--env AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
@@ -40,7 +41,9 @@ test:
 		-itd \
 		lambci/lambda:build-python3.6 bash
 	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/task/'
-	docker exec -it lambda bash '/tmp/bin/tests.sh'
+	docker exec -it lambda bash -c 'cp -r /local/tests tests'
+	docker exec -it lambda bash -c 'pip install pytest pytest-cov'
+	docker exec -it lambda bash -c 'py.test tests --cov remotepixel_tiler'
 	docker stop lambda
 	docker rm lambda
 
