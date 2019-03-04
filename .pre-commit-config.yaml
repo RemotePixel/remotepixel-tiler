@@ -32,9 +32,3 @@ repos:
                  '--select=D1',
                  # Don't require docstrings for tests
                  '--match=(?!test).*\.py']
-
-    - repo: git://github.com/antonbabenko/pre-commit-terraform
-      rev: v1.7.4
-      hooks:
-        - id: terraform_fmt
-        - id: terraform_docs
