@@ -76,7 +76,7 @@ workflows:
             - "python-3.6"
           filters:
             tags:
-              only: /^v[0-9]\.*/
+              only: /^[0-9]+.*/
             branches:
               ignore: /.*/
       - deploy:
@@ -85,6 +85,6 @@ workflows:
             - "package"
           filters:
             tags:
-              only: /^v[0-9]\.*/
+              only: /^[0-9]+.*/
             branches:
               ignore: /.*/
