@@ -41,9 +41,7 @@ test:
 		-itd \
 		lambci/lambda:build-python3.6 bash
 	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/task/'
-	docker exec -it lambda bash -c 'cp -r /local/tests tests'
-	docker exec -it lambda bash -c 'pip install pytest pytest-cov'
-	docker exec -it lambda bash -c 'py.test tests --cov remotepixel_tiler'
+	docker exec -it lambda bash -c '/tmp/bin/tests.sh'
 	docker stop lambda
 	docker rm lambda
 
