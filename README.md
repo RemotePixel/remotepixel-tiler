@@ -1,5 +1,9 @@
 # remotepixel-tiler
 
+[![CircleCI](https://circleci.com/gh/RemotePixel/remotepixel-tiler.svg?style=svg)](https://circleci.com/gh/RemotePixel/remotepixel-tiler)
+
+[![codecov](https://codecov.io/gh/RemotePixel/remotepixel-tiler/branch/master/graph/badge.svg)](https://codecov.io/gh/RemotePixel/remotepixel-tiler)
+
 Sentinel / Landsat / CBERS / COGEO Serverless dynamic tiler
 
 Bundle of `landsat-tiler`, `sentinel-tiler`, `cbers-tiler` and `cogeo-tiler` powering RemotePixel [viewer](https://viewer.remotepixel.ca).

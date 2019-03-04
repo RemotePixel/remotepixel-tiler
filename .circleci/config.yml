@@ -45,46 +45,40 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - tests
             - package.zip
 
-  "test-package":
+  deploy:
     docker:
-      - image: lambci/lambda:build-python3.6
+      - image: hashicorp/terraform:light
     environment:
-      - GDAL_DATA=/var/task/share/gdal
-      - PYTHONWARNINGS=ignore
-      - GDAL_CACHEMAX=75%
-      - VSI_CACHE=TRUE
-      - VSI_CACHE_SIZE=536870912
-      - CPL_TMPDIR="/tmp"
-      - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
-      - GDAL_HTTP_MULTIPLEX=YES
-      - GDAL_HTTP_VERSION=2
-      - GDAL_DISABLE_READDIR_ON_OPEN=TRUE
-      - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".TIF,.ovr,.jp2,.tif"
-    working_directory: /var/task/
+      - TERRAFORM_ENVIRONMENT=production
+    working_directory: ~/remotepixel-tiler
     steps:
+      - checkout
       - attach_workspace:
-          at: /var/task/
-      - run: unzip -q package.zip -d /var/task/
-      - run: pip install pytest pytest-cov
-      - run: py.test tests --cov remotepixel_tiler
-
+          at: ~/remotepixel-tiler
+      - run:
+          name: terraform deploy
+          command: |
+            terraform init
+            terraform plan -auto-approve --var token=${RPIX_SECRET_TOKEN}
 
 workflows:
   version: 2
-  build_and_deploy:
+  build_package_deploy:
     jobs:
       - "python-3.6"
       - package:
           requires:
             - "python-3.6"
-      # - deploy:
-      #     requires:
-      #       - "package"
-      #     filters:
-      #       tags:
-      #         only: /^[0-9]+.*/
-      #       branches:
-      #         ignore: /.*/
+          # filters:
+          #   tags:
+          #     only: /.*/
+      - deploy:
+          requires:
+            - package
+          # filters:
+          #   tags:
+          #     only: /^[0-9]+.*/
+          #   branches:
+          #     ignore: /.*/
