@@ -21,8 +21,8 @@ inst_reqs = [
 ]
 
 extra_reqs = {
-    "test": ["pytest", "pytest-cov"],
-    "dev": ["pytest", "pytest-cov", "pre-commit"],
+    "test": ["mock", "pytest", "pytest-cov"],
+    "dev": ["mock", "pytest", "pytest-cov", "pre-commit"],
 }
 
 setup(
