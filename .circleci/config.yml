@@ -61,7 +61,7 @@ jobs:
           name: terraform deploy
           command: |
             terraform init
-            terraform apply -auto-approve -var token=${RPIX_SECRET_TOKEN}
+            terraform apply -auto-approve -var token=${RPIX_SECRET_TOKEN} --var stage=production
 
 workflows:
   version: 2
@@ -77,6 +77,8 @@ workflows:
           filters:
             tags:
               only: /^v[0-9]\.*/
+            branches:
+              ignore: /.*/
       - deploy:
           requires:
             - "python-3.6"
@@ -84,3 +86,5 @@ workflows:
           filters:
             tags:
               only: /^v[0-9]\.*/
+            branches:
+              ignore: /.*/
