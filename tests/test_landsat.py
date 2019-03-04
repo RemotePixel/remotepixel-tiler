@@ -1,17 +1,31 @@
 """tests remotepixel_tiler.landsat."""
 
+import os
 import json
+import numpy
+
 import pytest
+from mock import patch
 
 from remotepixel_tiler.landsat import APP
 
 
+metadata_results = os.path.join(
+    os.path.dirname(__file__), "fixtures", "metadata_landsat.json"
+)
+with open(metadata_results, "r") as f:
+    metadata_results = json.loads(f.read())
+
+
 @pytest.fixture(autouse=True)
 def testing_env_var(monkeypatch):
-    """Set env."""
+    """Set fake env to make sure we don't hit AWS services."""
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "jqt")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "rde")
+    monkeypatch.delenv("AWS_PROFILE", raising=False)
+    monkeypatch.setenv("AWS_CONFIG_FILE", "/tmp/noconfigheere")
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "/tmp/noconfighereeither")
     monkeypatch.setenv("TOKEN", "YO")
-    monkeypatch.setenv("GDAL_DISABLE_READDIR_ON_OPEN", "TRUE")
-    monkeypatch.setenv("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", ".TIF,.ovr")
 
 
 @pytest.fixture()
@@ -25,8 +39,14 @@ def event():
     }
 
 
-def test_bounds(event):
+@patch("remotepixel_tiler.landsat.landsat8")
+def test_bounds(landsat8, event):
     """Should work as expected (get bounds)."""
+    landsat8.bounds.return_value = {
+        "sceneid": "LC80230312016320LGN00",
+        "bounds": [-89.79084, 40.65443, -86.91434, 42.83954],
+    }
+
     event["path"] = "/bounds/LC80230312016320LGN00"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {"access_token": "YO"}
@@ -46,8 +66,11 @@ def test_bounds(event):
     assert result["bounds"]
 
 
-def test_metadata(event):
+@patch("remotepixel_tiler.landsat.landsat8")
+def test_metadata(landsat8, event):
     """Should work as expected (get metadata)."""
+    landsat8.metadata.return_value = metadata_results
+
     event["path"] = "/metadata/LC80230312016320LGN00"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {"access_token": "YO"}
@@ -79,7 +102,9 @@ def test_metadata(event):
     assert result["statistics"]
 
 
-def test_tiles_error(event):
+@patch("remotepixel_tiler.landsat.landsat8")
+@patch("remotepixel_tiler.landsat.expression")
+def test_tiles_error(expression, landsat8, event):
     """Should work as expected (raise errors)."""
     event["path"] = "/tiles/LC80230312016320LGN00/8/65/94.png"
     event["httpMethod"] = "GET"
@@ -98,6 +123,8 @@ def test_tiles_error(event):
     assert res["statusCode"] == statusCode
     result = json.loads(res["body"])
     assert result["errorMessage"] == "Cannot pass bands and expression"
+    landsat8.assert_not_called()
+    expression.assert_not_called()
 
     event["path"] = "/tiles/LC80230312016320LGN00/8/65/94.png"
     event["httpMethod"] = "GET"
@@ -116,10 +143,20 @@ def test_tiles_error(event):
     assert res["statusCode"] == statusCode
     result = json.loads(res["body"])
     assert result["errorMessage"] == "Need bands or expression"
+    landsat8.assert_not_called()
+    expression.assert_not_called()
 
 
-def test_tiles_expr(event):
+@patch("remotepixel_tiler.landsat.landsat8")
+@patch("remotepixel_tiler.landsat.expression")
+def test_tiles_expr(expression, landsat8, event):
     """Should work as expected (get tile)."""
+    tilesize = 256
+    tile = numpy.random.rand(1, tilesize, tilesize)
+    mask = numpy.full((tilesize, tilesize), 255)
+
+    expression.return_value = (tile, mask)
+
     event["path"] = "/tiles/LC80230312016320LGN00/8/65/94.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {
@@ -142,6 +179,7 @@ def test_tiles_expr(event):
     assert res["statusCode"] == statusCode
     assert res["isBase64Encoded"]
     assert res["body"]
+    landsat8.assert_not_called()
 
     event["path"] = "/tiles/LC80230312016320LGN00/8/65/94.png"
     event["httpMethod"] = "GET"
@@ -167,10 +205,19 @@ def test_tiles_expr(event):
     assert res["statusCode"] == statusCode
     assert res["isBase64Encoded"]
     assert res["body"]
+    landsat8.assert_not_called()
 
 
-def test_tiles_bands(event):
+@patch("remotepixel_tiler.landsat.landsat8")
+@patch("remotepixel_tiler.landsat.expression")
+def test_tiles_bands(expression, landsat8, event):
     """Should work as expected (get tile)."""
+    tilesize = 256
+    tile = numpy.random.rand(3, tilesize, tilesize) * 10000
+    mask = numpy.full((tilesize, tilesize), 255)
+
+    landsat8.tile.return_value = (tile.astype(numpy.uint16), mask)
+
     event["path"] = "/tiles/LC80230312016320LGN00/8/65/94.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {
@@ -194,3 +241,4 @@ def test_tiles_bands(event):
     assert res["statusCode"] == statusCode
     assert res["isBase64Encoded"]
     assert res["body"]
+    expression.assert_not_called()

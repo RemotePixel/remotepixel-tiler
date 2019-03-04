@@ -122,8 +122,6 @@ def tile(
             scene, tile_x, tile_y, tile_z, bands=bands, tilesize=tilesize
         )
 
-    tile, mask = cbers.tile(scene, tile_x, tile_y, tile_z, bands, tilesize=tilesize)
-
     rtile, rmask = _postprocess(
         tile, mask, tilesize, rescale=rescale, color_formula=color_formula
     )

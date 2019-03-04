@@ -34,13 +34,11 @@ class TilerError(Exception):
     payload_compression_method="gzip",
     binary_b64encode=True,
 )
-def bounds(url=None, pmin=2, pmax=98):
+def bounds(url=None):
     """Handle bounds requests."""
     if not url:
         raise TilerError("Missing 'url' parameter")
-    pmin = float(pmin) if isinstance(pmin, str) else pmin
-    pmax = float(pmax) if isinstance(pmax, str) else pmax
-    info = main.metadata(url, pmin, pmax)
+    info = main.bounds(url)
     return ("OK", "application/json", json.dumps(info))
 
 
@@ -51,11 +49,13 @@ def bounds(url=None, pmin=2, pmax=98):
     payload_compression_method="gzip",
     binary_b64encode=True,
 )
-def metadata(url=None):
+def metadata(url=None, pmin=2, pmax=98):
     """Handle bounds requests."""
     if not url:
         raise TilerError("Missing 'url' parameter")
-    info = main.metadata(url)
+    pmin = float(pmin) if isinstance(pmin, str) else pmin
+    pmax = float(pmax) if isinstance(pmax, str) else pmax
+    info = main.metadata(url, pmin=pmin, pmax=pmax)
     return ("OK", "application/json", json.dumps(info))
 
 

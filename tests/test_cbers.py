@@ -1,16 +1,37 @@
 """tests remotepixel_tiler.cbers."""
 
+import os
 import json
+import numpy
+
 import pytest
+from mock import patch
 
 from remotepixel_tiler.cbers import APP
 
 
+search_results = os.path.join(
+    os.path.dirname(__file__), "fixtures", "search_cbers.json"
+)
+with open(search_results, "r") as f:
+    search_results = json.loads(f.read())
+
+metadata_results = os.path.join(
+    os.path.dirname(__file__), "fixtures", "metadata_cbers.json"
+)
+with open(metadata_results, "r") as f:
+    metadata_results = json.loads(f.read())
+
+
 @pytest.fixture(autouse=True)
 def testing_env_var(monkeypatch):
-    """Set env."""
+    """Set fake env to make sure we don't hit AWS services."""
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "jqt")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "rde")
+    monkeypatch.delenv("AWS_PROFILE", raising=False)
+    monkeypatch.setenv("AWS_CONFIG_FILE", "/tmp/noconfigheere")
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "/tmp/noconfighereeither")
     monkeypatch.setenv("TOKEN", "YO")
-    monkeypatch.setenv("AWS_REQUEST_PAYER", "requester")
 
 
 @pytest.fixture()
@@ -24,8 +45,15 @@ def event():
     }
 
 
-def test_search(event):
+@patch("remotepixel_tiler.cbers.cbers_search")
+def test_search(cbers_search, event):
     """Should work as expected (search data)."""
+
+    def mockSearch():
+        yield search_results["result"]
+
+    cbers_search.return_value = mockSearch()
+
     event["path"] = "/search"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {"row": "108", "path": "168", "access_token": "YO"}
@@ -67,8 +95,19 @@ def test_search(event):
     assert result["errorMessage"] == "Missing 'row' parameter"
 
 
-def test_bounds(event):
+@patch("remotepixel_tiler.cbers.cbers")
+def test_bounds(cbers, event):
     """Should work as expected (get bounds)."""
+    cbers.bounds.return_value = {
+        "sceneid": "CBERS_4_MUX_20171121_057_094_L2",
+        "bounds": [
+            53.302020833057796,
+            4.756472757234311,
+            54.628483877373,
+            6.025171883475984,
+        ],
+    }
+
     event["path"] = "/bounds/CBERS_4_MUX_20171121_057_094_L2"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {"access_token": "YO"}
@@ -88,8 +127,11 @@ def test_bounds(event):
     assert result["bounds"]
 
 
-def test_metadata(event):
+@patch("remotepixel_tiler.cbers.cbers")
+def test_metadata(cbers, event):
     """Should work as expected (get metadata)."""
+    cbers.metadata.return_value = metadata_results
+
     event["path"] = "/metadata/CBERS_4_MUX_20171121_057_094_L2"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {"access_token": "YO"}
@@ -121,7 +163,9 @@ def test_metadata(event):
     assert result["statistics"]
 
 
-def test_tiles_error(event):
+@patch("remotepixel_tiler.cbers.cbers")
+@patch("remotepixel_tiler.cbers.expression")
+def test_tiles_error(expression, cbers, event):
     """Should work as expected (get metadata)."""
     event["path"] = "/tiles/CBERS_4_MUX_20171121_057_094_L2/10/664/495.png"
     event["httpMethod"] = "GET"
@@ -140,6 +184,8 @@ def test_tiles_error(event):
     assert res["statusCode"] == statusCode
     result = json.loads(res["body"])
     assert result["errorMessage"] == "Cannot pass bands and expression"
+    cbers.assert_not_called()
+    expression.assert_not_called()
 
     event["path"] = "/tiles/CBERS_4_MUX_20171121_057_094_L2/10/664/495.png"
     event["httpMethod"] = "GET"
@@ -158,10 +204,20 @@ def test_tiles_error(event):
     assert res["statusCode"] == statusCode
     result = json.loads(res["body"])
     assert result["errorMessage"] == "Need bands or expression"
+    cbers.assert_not_called()
+    expression.assert_not_called()
 
 
-def test_tiles_expr(event):
+@patch("remotepixel_tiler.cbers.cbers")
+@patch("remotepixel_tiler.cbers.expression")
+def test_tiles_expr(expression, cbers, event):
     """Should work as expected (get metadata)."""
+    tilesize = 256
+    tile = numpy.random.rand(1, tilesize, tilesize)
+    mask = numpy.full((tilesize, tilesize), 255)
+
+    expression.return_value = (tile, mask)
+
     event["path"] = "/tiles/CBERS_4_MUX_20171121_057_094_L2/10/664/495.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {
@@ -184,6 +240,7 @@ def test_tiles_expr(event):
     assert res["statusCode"] == statusCode
     assert res["isBase64Encoded"]
     assert res["body"]
+    cbers.assert_not_called()
 
     event["path"] = "/tiles/CBERS_4_MUX_20171121_057_094_L2/10/664/495.png"
     event["httpMethod"] = "GET"
@@ -209,10 +266,19 @@ def test_tiles_expr(event):
     assert res["statusCode"] == statusCode
     assert res["isBase64Encoded"]
     assert res["body"]
+    cbers.assert_not_called()
 
 
-def test_tiles_bands(event):
+@patch("remotepixel_tiler.cbers.cbers")
+@patch("remotepixel_tiler.cbers.expression")
+def test_tiles_bands(expression, cbers, event):
     """Should work as expected (get metadata)."""
+    tilesize = 256
+    tile = numpy.random.rand(3, tilesize, tilesize) * 1000
+    mask = numpy.full((tilesize, tilesize), 255)
+
+    cbers.tile.return_value = (tile.astype(numpy.uint8), mask)
+
     event["path"] = "/tiles/CBERS_4_MUX_20171121_057_094_L2/10/664/495.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {
@@ -236,3 +302,4 @@ def test_tiles_bands(event):
     assert res["statusCode"] == statusCode
     assert res["isBase64Encoded"]
     assert res["body"]
+    expression.assert_not_called()

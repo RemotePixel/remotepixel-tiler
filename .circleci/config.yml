@@ -76,14 +76,10 @@ workflows:
   version: 2
   build_and_deploy:
     jobs:
-      # - "python-3.6"
+      - "python-3.6"
       - package
-          # requires:
-          #   - "python-3.6"
-      - "test-package":
           requires:
-            - package
-
+            - "python-3.6"
       # - deploy:
       #     requires:
       #       - "package"
