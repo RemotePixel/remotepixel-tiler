@@ -61,24 +61,25 @@ jobs:
           name: terraform deploy
           command: |
             terraform init
-            terraform plan -auto-approve --var token=${RPIX_SECRET_TOKEN}
+            terraform plan --var token=${RPIX_SECRET_TOKEN}
 
 workflows:
   version: 2
   build_package_deploy:
     jobs:
       - "python-3.6"
+          # filters:
+          #   tags:
+          #     only: /.*/
       - package:
           requires:
             - "python-3.6"
           # filters:
           #   tags:
-          #     only: /.*/
+          #     only: /^[0-9]+.*/
       - deploy:
           requires:
             - package
           # filters:
           #   tags:
           #     only: /^[0-9]+.*/
-          #   branches:
-          #     ignore: /.*/
