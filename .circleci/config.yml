@@ -1,0 +1,90 @@
+version: 2
+
+jobs:
+  "python-3.6":
+    docker:
+      - image: circleci/python:3.6.5
+    environment:
+      - TOXENV=py36
+    working_directory: ~/remotepixel-tiler
+    steps:
+      - checkout
+      - run:
+          name: install dependencies
+          command: pip install tox codecov pre-commit --user
+      - run:
+          name: run tox
+          command: ~/.local/bin/tox
+      - run:
+          name: run pre-commit
+          command:  ~/.local/bin/pre-commit run --all-files
+      - run:
+          name: upload coverage report
+          command: |
+             ~/.local/bin/coverage xml
+             ~/.local/bin/codecov
+          when: always
+
+  package:
+    docker:
+      - image: remotepixel/amazonlinux-gdal:2.4.0
+    environment:
+      - PACKAGE_PATH=/root/remotepixel-tiler/package.zip
+      - PACKAGE_TMP=/root/package
+    working_directory: ~/remotepixel-tiler
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/remotepixel-tiler
+      - run:
+          name: install requirements
+          command: pip3 install . --no-binary numpy,rasterio -t $PACKAGE_TMP -U
+      - run:
+          name: create package
+          command: bin/package.sh
+      - persist_to_workspace:
+          root: .
+          paths:
+            - package.zip
+
+  deploy:
+    docker:
+      - image: hashicorp/terraform:light
+    environment:
+      - TERRAFORM_ENVIRONMENT=production
+    working_directory: ~/remotepixel-tiler
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/remotepixel-tiler
+      - run:
+          name: terraform deploy
+          command: |
+            terraform init
+            terraform apply -auto-approve -var token=${RPIX_SECRET_TOKEN} --var stage=production
+
+workflows:
+  version: 2
+  build_package_deploy:
+    jobs:
+      - "python-3.6":
+          filters:
+            tags:
+              only: /.*/
+      - package:
+          requires:
+            - "python-3.6"
+          filters:
+            tags:
+              only: /^v[0-9]\.*/
+            branches:
+              ignore: /.*/
+      - deploy:
+          requires:
+            - "python-3.6"
+            - "package"
+          filters:
+            tags:
+              only: /^v[0-9]\.*/
+            branches:
+              ignore: /.*/

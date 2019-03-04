@@ -1,15 +1,13 @@
 """app.cbers: handle request for CBERS-tiler."""
 
-import re
 import json
 
-import numpy as np
-
 from rio_tiler import cbers
-from rio_tiler.utils import array_to_img, linear_rescale, get_colormap, expression
+from rio_tiler.profiles import img_profiles
+from rio_tiler.utils import array_to_image, get_colormap, expression
 from aws_sat_api.search import cbers as cbers_search
 
-from remotepixel_tiler.utils import img_to_buffer
+from .utils import _postprocess
 
 from lambda_proxy.proxy import API
 
@@ -20,7 +18,14 @@ class CbersTilerError(Exception):
     """Base exception class."""
 
 
-@APP.route("/search", methods=["GET"], cors=True, token=True)
+@APP.route(
+    "/search",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def search(path=None, row=None):
     """Handle search requests."""
     if not path:
@@ -38,14 +43,28 @@ def search(path=None, row=None):
     return ("OK", "application/json", json.dumps(info))
 
 
-@APP.route("/bounds/<scene>", methods=["GET"], cors=True, token=True)
+@APP.route(
+    "/bounds/<scene>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def bounds(scene):
     """Handle bounds requests."""
     info = cbers.bounds(scene)
     return ("OK", "application/json", json.dumps(info))
 
 
-@APP.route("/metadata/<scene>", methods=["GET"], cors=True, token=True)
+@APP.route(
+    "/metadata/<scene>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def metadata(scene, pmin=2, pmax=98):
     """Handle metadata requests."""
     pmin = float(pmin) if isinstance(pmin, str) else pmin
@@ -63,67 +82,59 @@ def metadata(scene, pmin=2, pmax=98):
     payload_compression_method="gzip",
     binary_b64encode=True,
 )
-def tile(scene, tile_z, tile_x, tile_y, tileformat, rgb="7,6,5", histo=None, tile=256):
+def tile(
+    scene,
+    tile_z,
+    tile_x,
+    tile_y,
+    tileformat,
+    scale=1,
+    bands=None,
+    expr=None,
+    rescale=None,
+    color_formula=None,
+    color_map=None,
+):
     """Handle tile requests."""
     if tileformat == "jpg":
-        tileformat = "jpeg"
+        driver = "jpeg"
+    elif tileformat == "jp2":
+        driver = "JP2OpenJPEG"
+    else:
+        driver = tileformat
 
-    bands = tuple(re.findall(r"\d+", rgb))
+    if bands and expr:
+        raise CbersTilerError("Cannot pass bands and expression")
+    if not bands and not expr:
+        raise CbersTilerError("Need bands or expression")
 
-    if not histo:
-        histo = ";".join(["0,255"] * len(bands))
-    histoCut = re.findall(r"\d+,\d+", histo)
-    histoCut = list(map(lambda x: list(map(int, x.split(","))), histoCut))
+    if bands:
+        bands = tuple(bands.split(",")) if isinstance(bands, str) else bands
 
-    if len(bands) != len(histoCut):
-        raise CbersTilerError(
-            "The number of bands doesn't match the number of histogramm values"
+    scale = int(scale) if isinstance(scale, str) else scale
+    tilesize = scale * 256
+
+    if expr is not None:
+        tile, mask = expression(scene, tile_x, tile_y, tile_z, expr, tilesize=tilesize)
+
+    elif bands is not None:
+        tile, mask = cbers.tile(
+            scene, tile_x, tile_y, tile_z, bands=bands, tilesize=tilesize
         )
 
-    tilesize = int(tile) if isinstance(tile, str) else tile
+    rtile, rmask = _postprocess(
+        tile, mask, tilesize, rescale=rescale, color_formula=color_formula
+    )
 
-    tile, mask = cbers.tile(scene, tile_x, tile_y, tile_z, bands, tilesize=tilesize)
+    if color_map:
+        color_map = get_colormap(color_map, format="gdal")
 
-    rtile = np.zeros((len(bands), tilesize, tilesize), dtype=np.uint8)
-    for bdx in range(len(bands)):
-        rtile[bdx] = np.where(
-            mask,
-            linear_rescale(tile[bdx], in_range=histoCut[bdx], out_range=[0, 255]),
-            0,
-        )
-    img = array_to_img(rtile, mask=mask)
-    return ("OK", f"image/{tileformat}", img_to_buffer(img, tileformat))
-
-
-@APP.route(
-    "/processing/<scene>/<int:z>/<int:x>/<int:y>.<ext>",
-    methods=["GET"],
-    cors=True,
-    token=True,
-    payload_compression_method="gzip",
-    binary_b64encode=True,
-)
-def ratio(
-    scene, tile_z, tile_x, tile_y, tileformat, ratio=None, range=[-1, 1], tile=256
-):
-    """Handle processing requests."""
-    if tileformat == "jpg":
-        tileformat = "jpeg"
-
-    if not ratio:
-        raise CbersTilerError("Missing 'ratio' parameter")
-
-    tilesize = int(tile) if isinstance(tile, str) else tile
-
-    tile, mask = expression(scene, tile_x, tile_y, tile_z, ratio, tilesize=tilesize)
-    if len(tile.shape) == 2:
-        tile = np.expand_dims(tile, axis=0)
-
-    rtile = np.where(
-        mask, linear_rescale(tile, in_range=range, out_range=[0, 255]), 0
-    ).astype(np.uint8)
-    img = array_to_img(rtile, color_map=get_colormap(name="cfastie"), mask=mask)
-    return ("OK", f"image/{tileformat}", img_to_buffer(img, tileformat))
+    options = img_profiles.get(driver, {})
+    return (
+        "OK",
+        f"image/{tileformat}",
+        array_to_image(rtile, rmask, img_format=driver, color_map=color_map, **options),
+    )
 
 
 @APP.route("/favicon.ico", methods=["GET"], cors=True)

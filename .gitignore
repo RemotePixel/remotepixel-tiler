@@ -70,3 +70,7 @@ target/
 .*.swp
 
 .python-version
+
+# Terraform
+.terraform*
+terraform.*
