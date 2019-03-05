@@ -15,7 +15,7 @@ variable "token" {
 terraform {
   backend "s3" {
     bucket         = "remotepixel-tf-state"
-    key            = "remotepixel-state-store/terraform.tfstate"
+    key            = "remotepixel-tiler/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "remotepixel-tf-lock"
     encrypt        = true
@@ -23,7 +23,7 @@ terraform {
 }
 
 module "landsat" {
-  source = "git@github.com:developmentseed/tf-lambda-proxy-apigw.git?ref=v1"
+  source = "github.com/developmentseed/tf-lambda-proxy-apigw"
 
   # General options
   project    = "${var.project}"
@@ -77,7 +77,7 @@ EOF
 }
 
 module "cbers" {
-  source = "git@github.com:developmentseed/tf-lambda-proxy-apigw.git?ref=v1"
+  source = "github.com/developmentseed/tf-lambda-proxy-apigw"
 
   # General options
   project    = "${var.project}"
@@ -135,7 +135,7 @@ EOF
 }
 
 # module "sentinel" {
-#   source = "git@github.com:developmentseed/tf-lambda-proxy-apigw.git?ref=v1"
+#   source = "github.com/developmentseed/tf-lambda-proxy-apigw"
 
 #   # General options
 #   project    = "${var.project}"
@@ -194,7 +194,7 @@ EOF
 # }
 
 module "cogeo" {
-  source = "git@github.com:developmentseed/tf-lambda-proxy-apigw.git?ref=v1"
+  source = "github.com/developmentseed/tf-lambda-proxy-apigw"
 
   # General options
   project    = "${var.project}"
