@@ -55,13 +55,21 @@ def metadata(scene, pmin=2, pmax=98):
     payload_compression_method="gzip",
     binary_b64encode=True,
 )
+@APP.route(
+    "/tiles/<scene>/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def tiles(
     scene,
-    tile_z,
-    tile_x,
-    tile_y,
-    tileformat,
+    z,
+    x,
+    y,
     scale=1,
+    ext="png",
     bands=None,
     expr=None,
     rescale=None,
@@ -70,12 +78,12 @@ def tiles(
     pan=False,
 ):
     """Handle tile requests."""
-    if tileformat == "jpg":
+    if ext == "jpg":
         driver = "jpeg"
-    elif tileformat == "jp2":
+    elif ext == "jp2":
         driver = "JP2OpenJPEG"
     else:
-        driver = tileformat
+        driver = ext
 
     if bands and expr:
         raise LandsatTilerError("Cannot pass bands and expression")
@@ -83,21 +91,18 @@ def tiles(
         raise LandsatTilerError("Need bands or expression")
 
     if bands:
-        bands = tuple(bands.split(",")) if isinstance(bands, str) else bands
+        bands = tuple(bands.split(","))
 
-    scale = int(scale) if isinstance(scale, str) else scale
     tilesize = scale * 256
 
     pan = True if pan else False
 
     if expr is not None:
-        tile, mask = expression(
-            scene, tile_x, tile_y, tile_z, expr, tilesize=tilesize, pan=pan
-        )
+        tile, mask = expression(scene, x, y, z, expr, tilesize=tilesize)  # , pan=pan)
 
     elif bands is not None:
         tile, mask = landsat8.tile(
-            scene, tile_x, tile_y, tile_z, bands=bands, tilesize=tilesize, pan=pan
+            scene, x, y, z, bands=bands, tilesize=tilesize  # , pan=pan
         )
 
     rtile, rmask = _postprocess(
@@ -110,7 +115,7 @@ def tiles(
     options = img_profiles.get(driver, {})
     return (
         "OK",
-        f"image/{tileformat}",
+        f"image/{ext}",
         array_to_image(rtile, rmask, img_format=driver, color_map=color_map, **options),
     )
 

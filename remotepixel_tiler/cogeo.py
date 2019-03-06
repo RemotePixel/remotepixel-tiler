@@ -66,12 +66,19 @@ def metadata(url=None, pmin=2, pmax=98):
     payload_compression_method="gzip",
     binary_b64encode=True,
 )
+@APP.route(
+    "/tiles/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def tile(
-    tile_z,
-    tile_x,
-    tile_y,
-    tileformat,
+    z,
+    x,
+    y,
     scale=1,
+    ext="png",
     url=None,
     indexes=None,
     expr=None,
@@ -82,35 +89,30 @@ def tile(
     dem=None,
 ):
     """Handle tile requests."""
-    if tileformat == "jpg":
+    if ext == "jpg":
         driver = "jpeg"
-    elif tileformat == "jp2":
+    elif ext == "jp2":
         driver = "JP2OpenJPEG"
     else:
-        driver = tileformat
+        driver = ext
 
     if indexes and expr:
         raise TilerError("Cannot pass indexes and expression")
-
     if not url:
         raise TilerError("Missing 'url' parameter")
 
     if indexes:
         indexes = tuple(int(s) for s in re.findall(r"\d+", indexes))
 
-    scale = int(scale) if isinstance(scale, str) else scale
     tilesize = scale * 256
 
     if nodata is not None:
         nodata = numpy.nan if nodata == "nan" else float(nodata)
 
     if expr is not None:
-        tile, mask = expression(url, tile_x, tile_y, tile_z, expr, tilesize=tilesize)
-
+        tile, mask = expression(url, x, y, z, expr, tilesize=tilesize)
     else:
-        tile, mask = main.tile(
-            url, tile_x, tile_y, tile_z, indexes=indexes, tilesize=tilesize
-        )
+        tile, mask = main.tile(url, x, y, z, indexes=indexes, tilesize=tilesize)
 
     if dem:
         if dem == "mapbox":
@@ -130,7 +132,7 @@ def tile(
     options = img_profiles.get(driver, {})
     return (
         "OK",
-        f"image/{tileformat}",
+        f"image/{ext}",
         array_to_image(rtile, rmask, img_format=driver, color_map=color_map, **options),
     )
 

@@ -54,9 +54,9 @@ def test_search(cbers_search, event):
 
     cbers_search.return_value = mockSearch()
 
-    event["path"] = "/search"
+    event["path"] = "/search/168/108"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = {"row": "108", "path": "168", "access_token": "YO"}
+    event["queryStringParameters"] = {"access_token": "YO"}
 
     headers = {
         "Access-Control-Allow-Credentials": "true",
@@ -72,27 +72,13 @@ def test_search(cbers_search, event):
     result = json.loads(res["body"])
     assert result["meta"]["found"]
 
-    event["path"] = "/search"
+    event["path"] = "/search/168"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = {"row": "108", "access_token": "YO"}
-    statusCode = 500
+    event["queryStringParameters"] = {"access_token": "YO"}
+    statusCode = 400
 
     res = APP(event, {})
-    assert res["headers"] == headers
     assert res["statusCode"] == statusCode
-    result = json.loads(res["body"])
-    assert result["errorMessage"] == "Missing 'path' parameter"
-
-    event["path"] = "/search"
-    event["httpMethod"] = "GET"
-    event["queryStringParameters"] = {"path": "108", "access_token": "YO"}
-    statusCode = 500
-
-    res = APP(event, {})
-    assert res["headers"] == headers
-    assert res["statusCode"] == statusCode
-    result = json.loads(res["body"])
-    assert result["errorMessage"] == "Missing 'row' parameter"
 
 
 @patch("remotepixel_tiler.cbers.cbers")

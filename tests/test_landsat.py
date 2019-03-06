@@ -179,6 +179,9 @@ def test_tiles_expr(expression, landsat8, event):
     assert res["statusCode"] == statusCode
     assert res["isBase64Encoded"]
     assert res["body"]
+    expression.call_with(
+        "LC80230312016320LGN00", 8, 65, 94, "(b5-b4)/(b5+b4)", tilesize=256, pan=False
+    )
     landsat8.assert_not_called()
 
     event["path"] = "/tiles/LC80230312016320LGN00/8/65/94.png"
@@ -213,20 +216,20 @@ def test_tiles_expr(expression, landsat8, event):
 def test_tiles_bands(expression, landsat8, event):
     """Should work as expected (get tile)."""
     tilesize = 256
-    tile = numpy.random.rand(3, tilesize, tilesize) * 10000
+    tile = (numpy.random.rand(3, tilesize, tilesize) * 10000).astype(numpy.uint16)
     mask = numpy.full((tilesize, tilesize), 255)
 
-    landsat8.tile.return_value = (tile.astype(numpy.uint16), mask)
+    landsat8.tile.return_value = (tile, mask)
 
     event["path"] = "/tiles/LC80230312016320LGN00/8/65/94.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {
         "bands": "5,3,2",
-        "color_formula": "gamma RGB 3",
+        "color_formula": "gamma RGB 3.5 saturation 1.7 sigmoidal RGB 15 0.35",
         "access_token": "YO",
     }
     event["headers"]["Accept-Encoding"] = "gzip, deflate"
-
+    print(event)
     headers = {
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
@@ -242,3 +245,42 @@ def test_tiles_bands(expression, landsat8, event):
     assert res["isBase64Encoded"]
     assert res["body"]
     expression.assert_not_called()
+    landsat8.call_with(
+        "LC80230312016320LGN00",
+        8,
+        65,
+        94,
+        bands=("5", "4", "3"),
+        tilesize=256,
+        pan=False,
+    )
+
+    tilesize = 512
+    tile = (numpy.random.rand(3, tilesize, tilesize) * 10000).astype(numpy.uint16)
+    mask = numpy.full((tilesize, tilesize), 255)
+
+    landsat8.tile.return_value = (tile, mask)
+
+    event["path"] = "/tiles/LC80230312016320LGN00/8/65/94@2x.png"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = {
+        "bands": "5,3,2",
+        "color_formula": "gamma RGB 3.5 saturation 1.7 sigmoidal RGB 15 0.35",
+        "access_token": "YO",
+    }
+
+    res = APP(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == statusCode
+    assert res["isBase64Encoded"]
+    assert res["body"]
+    expression.assert_not_called()
+    landsat8.call_with(
+        "LC80230312016320LGN00",
+        8,
+        65,
+        94,
+        bands=("5", "4", "3"),
+        tilesize=512,
+        pan=False,
+    )
