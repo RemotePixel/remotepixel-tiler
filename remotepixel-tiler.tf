@@ -33,7 +33,7 @@ module "landsat" {
   # Lambda options
   lambda_name    = "landsat"
   lambda_runtime = "python3.6"
-  lambda_memory  = 512
+  lambda_memory  = 1024
   lambda_timeout = 5
   lambda_package = "package.zip"
   lambda_handler = "remotepixel_tiler.landsat.APP"
@@ -87,7 +87,7 @@ module "cbers" {
   # Lambda options
   lambda_name    = "cbers"
   lambda_runtime = "python3.6"
-  lambda_memory  = 512
+  lambda_memory  = 1024
   lambda_timeout = 5
   lambda_package = "package.zip"
   lambda_handler = "remotepixel_tiler.cbers.APP"
@@ -204,7 +204,7 @@ module "cogeo" {
   # Lambda options
   lambda_name    = "cogeo"
   lambda_runtime = "python3.6"
-  lambda_memory  = 512
+  lambda_memory  = 1024
   lambda_timeout = 5
   lambda_package = "package.zip"
   lambda_handler = "remotepixel_tiler.cogeo.APP"
