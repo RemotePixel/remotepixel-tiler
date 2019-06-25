@@ -5,10 +5,18 @@ import base64
 from urllib.parse import urlparse, parse_qsl
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+from socketserver import ThreadingMixIn
+
 from remotepixel_tiler.landsat import APP as landsat_app
 from remotepixel_tiler.sentinel import APP as sentine_app
 from remotepixel_tiler.cbers import APP as cbers_app
 from remotepixel_tiler.cogeo import APP as cogeo_app
+
+
+class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    """MultiThread."""
+
+    pass
 
 
 class LandsatHandler(BaseHTTPRequestHandler):
@@ -134,7 +142,7 @@ def cli():
 def landsat(port):
     """Launch server."""
     server_address = ("", port)
-    httpd = HTTPServer(server_address, LandsatHandler)
+    httpd = ThreadingSimpleServer(server_address, LandsatHandler)
     click.echo(f"Starting local server at http://127.0.0.1:{port}", err=True)
     httpd.serve_forever()
 
@@ -144,7 +152,7 @@ def landsat(port):
 def sentinel(port):
     """Launch server."""
     server_address = ("", port)
-    httpd = HTTPServer(server_address, SentinelHandler)
+    httpd = ThreadingSimpleServer(server_address, SentinelHandler)
     click.echo(f"Starting local server at http://127.0.0.1:{port}", err=True)
     httpd.serve_forever()
 
@@ -154,7 +162,7 @@ def sentinel(port):
 def cbers(port):
     """Launch server."""
     server_address = ("", port)
-    httpd = HTTPServer(server_address, CbersHandler)
+    httpd = ThreadingSimpleServer(server_address, CbersHandler)
     click.echo(f"Starting local server at http://127.0.0.1:{port}", err=True)
     httpd.serve_forever()
 
@@ -164,6 +172,6 @@ def cbers(port):
 def cogeo(port):
     """Launch server."""
     server_address = ("", port)
-    httpd = HTTPServer(server_address, CogeoHandler)
+    httpd = ThreadingSimpleServer(server_address, CogeoHandler)
     click.echo(f"Starting local server at http://127.0.0.1:{port}", err=True)
     httpd.serve_forever()

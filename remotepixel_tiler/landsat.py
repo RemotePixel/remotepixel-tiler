@@ -1,20 +1,98 @@
 """app.landsat: handle request for Landsat-tiler."""
 
-import json
+from typing import Any, Dict, Tuple, Union
+from typing.io import BinaryIO
 
+import json
+import urllib
+
+import rasterio
+from rasterio import warp
 from rio_tiler import landsat8
+from rio_tiler.mercator import get_zooms
 from rio_tiler.profiles import img_profiles
 from rio_tiler.utils import array_to_image, get_colormap, expression
 
-from .utils import _postprocess
+from rio_tiler_mvt.mvt import encoder as mvtEncoder
+
+from remotepixel_tiler.utils import _postprocess
 
 from lambda_proxy.proxy import API
 
-APP = API(app_name="landsat-tiler")
+APP = API(name="landsat-tiler")
+LANDSAT_BUCKET = "s3://landsat-pds"
 
 
 class LandsatTilerError(Exception):
     """Base exception class."""
+
+
+@APP.route(
+    "/<sceneid>.json",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
+)
+@APP.route(
+    "/tilejson.json",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
+)
+@APP.pass_event
+def tilejson_handler(
+    request: Dict,
+    sceneid: str,
+    tile_format: str = "png",
+    tile_scale: int = 1,
+    **kwargs: Any,
+) -> Tuple[str, str, str]:
+    """Handle /tilejson.json requests."""
+    host = request["headers"].get(
+        "X-Forwarded-Host", request["headers"].get("Host", "")
+    )
+    # Check for API gateway stage
+    if ".execute-api." in host and ".amazonaws.com" in host:
+        stage = request["requestContext"].get("stage", "")
+        host = f"{host}/{stage}"
+
+    # HACK
+    token = request["multiValueQueryStringParameters"].get("access_token")
+    if token:
+        kwargs.update(dict(access_token=token[0]))
+
+    scheme = "http" if host.startswith("127.0.0.1") else "https"
+
+    qs = urllib.parse.urlencode(list(kwargs.items()))
+    tile_url = f"{scheme}://{host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}"
+    if qs:
+        tile_url += f"?{qs}"
+
+    scene_params = landsat8._landsat_parse_scene_id(sceneid)
+    landsat_address = f"{LANDSAT_BUCKET}/{scene_params['key']}_BQA.TIF"
+    with rasterio.open(landsat_address) as src_dst:
+        bounds = warp.transform_bounds(
+            *[src_dst.crs, "epsg:4326"] + list(src_dst.bounds), densify_pts=21
+        )
+        minzoom, maxzoom = get_zooms(src_dst)
+        center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom]
+
+    meta = dict(
+        bounds=bounds,
+        center=center,
+        minzoom=minzoom,
+        maxzoom=maxzoom,
+        name=sceneid,
+        tilejson="2.1.0",
+        tiles=[tile_url],
+    )
+    return ("OK", "application/json", json.dumps(meta))
 
 
 @APP.route(
@@ -24,11 +102,12 @@ class LandsatTilerError(Exception):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
 )
-def bounds(scene):
+def bounds(scene: str) -> Tuple[str, str, str]:
     """Handle bounds requests."""
-    info = landsat8.bounds(scene)
-    return ("OK", "application/json", json.dumps(info))
+    return ("OK", "application/json", json.dumps(landsat8.bounds(scene)))
 
 
 @APP.route(
@@ -38,13 +117,53 @@ def bounds(scene):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
 )
-def metadata(scene, pmin=2, pmax=98):
+def metadata(
+    scene: str, pmin: Union[str, float] = 2., pmax: Union[str, float] = 98.
+) -> Tuple[str, str, str]:
     """Handle metadata requests."""
     pmin = float(pmin) if isinstance(pmin, str) else pmin
     pmax = float(pmax) if isinstance(pmax, str) else pmax
     info = landsat8.metadata(scene, pmin, pmax)
     return ("OK", "application/json", json.dumps(info))
+
+
+@APP.route(
+    "/tiles/<scene>/<int:z>/<int:x>/<int:y>.pbf",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["tiles"],
+)
+def mvttiles(
+    scene: str,
+    z: int,
+    x: int,
+    y: int,
+    bands: str = None,
+    tile_size: Union[str, int] = 256,
+    pixel_selection: str = "first",
+    feature_type: str = "point",
+    resampling_method: str = "nearest",
+) -> Tuple[str, str, BinaryIO]:
+    """Handle MVT tile requests."""
+    if tile_size is not None and isinstance(tile_size, str):
+        tile_size = int(tile_size)
+
+    bands = tuple(bands.split(","))
+    tile, mask = landsat8.tile(scene, x, y, z, bands=bands, tilesize=tile_size)
+
+    band_descriptions = [f"Band_{b}" for b in bands]
+    return (
+        "OK",
+        "application/x-protobuf",
+        mvtEncoder(tile, mask, band_descriptions, "landsat", feature_type=feature_type),
+    )
 
 
 @APP.route(
@@ -54,6 +173,8 @@ def metadata(scene, pmin=2, pmax=98):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    ttl=3600,
+    tag=["tiles"],
 )
 @APP.route(
     "/tiles/<scene>/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
@@ -62,51 +183,44 @@ def metadata(scene, pmin=2, pmax=98):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    ttl=3600,
+    tag=["tiles"],
 )
 def tiles(
-    scene,
-    z,
-    x,
-    y,
-    scale=1,
-    ext="png",
-    bands=None,
-    expr=None,
-    rescale=None,
-    color_formula=None,
-    color_map=None,
-    pan=False,
-):
+    scene: str,
+    z: int,
+    x: int,
+    y: int,
+    scale: int = 1,
+    ext: str = "png",
+    bands: str = None,
+    expr: str = None,
+    rescale: str = None,
+    color_formula: str = None,
+    color_map: str = None,
+    pan: bool = False,
+) -> Tuple[str, str, BinaryIO]:
     """Handle tile requests."""
-    if ext == "jpg":
-        driver = "jpeg"
-    elif ext == "jp2":
-        driver = "JP2OpenJPEG"
-    else:
-        driver = ext
+    driver = "jpeg" if ext == "jpg" else ext
 
     if bands and expr:
         raise LandsatTilerError("Cannot pass bands and expression")
-    if not bands and not expr:
-        raise LandsatTilerError("Need bands or expression")
-
-    if bands:
-        bands = tuple(bands.split(","))
 
     tilesize = scale * 256
 
     pan = True if pan else False
-
     if expr is not None:
-        tile, mask = expression(scene, x, y, z, expr, tilesize=tilesize)  # , pan=pan)
+        tile, mask = expression(scene, x, y, z, expr=expr, tilesize=tilesize, pan=pan)
 
     elif bands is not None:
         tile, mask = landsat8.tile(
-            scene, x, y, z, bands=bands, tilesize=tilesize  # , pan=pan
+            scene, x, y, z, bands=tuple(bands.split(",")), tilesize=tilesize, pan=pan
         )
+    else:
+        raise LandsatTilerError("No bands nor expression given")
 
     rtile, rmask = _postprocess(
-        tile, mask, tilesize, rescale=rescale, color_formula=color_formula
+        tile, mask, rescale=rescale, color_formula=color_formula
     )
 
     if color_map:
@@ -120,7 +234,7 @@ def tiles(
     )
 
 
-@APP.route("/favicon.ico", methods=["GET"], cors=True)
-def favicon():
+@APP.route("/favicon.ico", methods=["GET"], cors=True, tag=["other"])
+def favicon() -> Tuple[str, str, str]:
     """Favicon."""
-    return ("NOK", "text/plain", "")
+    return ("EMPTY", "text/plain", "")

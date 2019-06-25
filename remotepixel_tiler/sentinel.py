@@ -1,16 +1,19 @@
 """app.sentinel: handle request for Sentinel-tiler."""
 
+from typing import Tuple, Union
+from typing.io import BinaryIO
+
 import json
 
 from rio_tiler import sentinel2
 from rio_tiler.profiles import img_profiles
 from rio_tiler.utils import array_to_image, get_colormap, expression
 
-from .utils import _postprocess
+from remotepixel_tiler.utils import _postprocess
 
 from lambda_proxy.proxy import API
 
-APP = API(app_name="sentinel-tiler")
+APP = API(name="sentinel-tiler")
 
 
 class SentinelTilerError(Exception):
@@ -24,11 +27,12 @@ class SentinelTilerError(Exception):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
 )
-def bounds(scene):
+def bounds(scene: str) -> Tuple[str, str, str]:
     """Handle bounds requests."""
-    info = sentinel2.bounds(scene)
-    return ("OK", "application/json", json.dumps(info))
+    return ("OK", "application/json", json.dumps(sentinel2.bounds(scene)))
 
 
 @APP.route(
@@ -38,8 +42,12 @@ def bounds(scene):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
 )
-def metadata(scene, pmin=2, pmax=98):
+def metadata(
+    scene: str, pmin: Union[str, float] = 2., pmax: Union[str, float] = 98.
+) -> Tuple[str, str, str]:
     """Handle metadata requests."""
     pmin = float(pmin) if isinstance(pmin, str) else pmin
     pmax = float(pmax) if isinstance(pmax, str) else pmax
@@ -54,6 +62,8 @@ def metadata(scene, pmin=2, pmax=98):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    ttl=3600,
+    tag=["tiles"],
 )
 @APP.route(
     "/s2/tiles/<scene>/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
@@ -62,35 +72,27 @@ def metadata(scene, pmin=2, pmax=98):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    ttl=3600,
+    tag=["tiles"],
 )
 def tile(
-    scene,
-    z,
-    x,
-    y,
-    scale=1,
-    ext="png",
-    bands=None,
-    expr=None,
-    rescale=None,
-    color_formula=None,
-    color_map=None,
-):
+    scene: str,
+    z: int,
+    x: int,
+    y: int,
+    scale: int = 1,
+    ext: str = "png",
+    bands: str = None,
+    expr: str = None,
+    rescale: str = None,
+    color_formula: str = None,
+    color_map: str = None,
+) -> Tuple[str, str, BinaryIO]:
     """Handle tile requests."""
-    if ext == "jpg":
-        driver = "jpeg"
-    elif ext == "jp2":
-        driver = "JP2OpenJPEG"
-    else:
-        driver = ext
+    driver = "jpeg" if ext == "jpg" else ext
 
     if bands and expr:
         raise SentinelTilerError("Cannot pass bands and expression")
-    if not bands and not expr:
-        raise SentinelTilerError("Need bands or expression")
-
-    if bands:
-        bands = tuple(bands.split(","))
 
     tilesize = scale * 256
 
@@ -98,10 +100,14 @@ def tile(
         tile, mask = expression(scene, x, y, z, expr, tilesize=tilesize)
 
     elif bands is not None:
-        tile, mask = sentinel2.tile(scene, x, y, z, bands=bands, tilesize=tilesize)
+        tile, mask = sentinel2.tile(
+            scene, x, y, z, bands=tuple(bands.split(",")), tilesize=tilesize
+        )
+    else:
+        raise SentinelTilerError("No bands nor expression given")
 
     rtile, rmask = _postprocess(
-        tile, mask, tilesize, rescale=rescale, color_formula=color_formula
+        tile, mask, rescale=rescale, color_formula=color_formula
     )
 
     if color_map:
@@ -115,7 +121,7 @@ def tile(
     )
 
 
-@APP.route("/favicon.ico", methods=["GET"], cors=True)
-def favicon():
+@APP.route("/favicon.ico", methods=["GET"], cors=True, tag=["other"])
+def favicon() -> Tuple[str, str, str]:
     """Favicon."""
-    return ("NOK", "text/plain", "")
+    return ("EMPTY", "text/plain", "")

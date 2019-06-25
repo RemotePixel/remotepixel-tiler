@@ -142,7 +142,7 @@ def test_tiles_error(expression, landsat8, event):
     assert res["headers"] == headers
     assert res["statusCode"] == statusCode
     result = json.loads(res["body"])
-    assert result["errorMessage"] == "Need bands or expression"
+    assert result["errorMessage"] == "No bands nor expression given"
     landsat8.assert_not_called()
     expression.assert_not_called()
 

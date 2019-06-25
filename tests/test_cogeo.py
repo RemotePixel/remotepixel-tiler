@@ -71,6 +71,27 @@ def test_bounds(cogeo, event):
 
 
 @patch("remotepixel_tiler.cogeo.main")
+def test_noUrl(cogeo, event):
+    """Should work as expected (get bounds)."""
+
+    event["path"] = "/bounds"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = {}
+
+    headers = {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+    }
+    statusCode = 500
+
+    res = APP(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == statusCode
+
+
+@patch("remotepixel_tiler.cogeo.main")
 def test_metadata(cogeo, event):
     """Should work as expected (get metadata)."""
     cogeo.metadata.return_value = metadata_results
