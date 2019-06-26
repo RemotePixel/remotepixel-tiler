@@ -70,9 +70,12 @@ def tilejson_handler(
     scheme = "http" if host.startswith("127.0.0.1") else "https"
 
     qs = urllib.parse.urlencode(list(kwargs.items()))
-    tile_url = f"{scheme}://{host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}"
-    if qs:
-        tile_url += f"?{qs}"
+    if tile_format in ["pbf", "mvt"]:
+        tile_url = (
+            f"{scheme}://{host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
+        )
+    else:
+        tile_url = f"{scheme}://{host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
 
     scene_params = landsat8._landsat_parse_scene_id(sceneid)
     landsat_address = f"{LANDSAT_BUCKET}/{scene_params['key']}_BQA.TIF"
