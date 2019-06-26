@@ -59,6 +59,7 @@ def test_bounds(cogeo, event):
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "max-age=3600",
         "Content-Type": "application/json",
     }
     statusCode = 200
@@ -82,6 +83,7 @@ def test_noUrl(cogeo, event):
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "max-age=3600",
         "Content-Type": "application/json",
     }
     statusCode = 500
@@ -104,6 +106,7 @@ def test_metadata(cogeo, event):
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "max-age=3600",
         "Content-Type": "application/json",
     }
     statusCode = 200
@@ -132,6 +135,7 @@ def test_tiles_error(cogeo, event):
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "max-age=3600",
         "Content-Type": "application/json",
     }
     statusCode = 500
@@ -151,6 +155,7 @@ def test_tiles_error(cogeo, event):
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "max-age=3600",
         "Content-Type": "application/json",
     }
     statusCode = 500
@@ -186,6 +191,7 @@ def test_tiles_expr(expression, cogeo, event):
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "max-age=3600",
         "Content-Type": "image/png",
     }
     statusCode = 200
@@ -212,6 +218,7 @@ def test_tiles_expr(expression, cogeo, event):
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
         "Content-Encoding": "gzip",
+        "Cache-Control": "max-age=3600",
         "Content-Type": "image/png",
     }
     statusCode = 200
@@ -247,6 +254,7 @@ def test_tiles_bands(expression, cogeo, event):
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
         "Content-Encoding": "gzip",
+        "Cache-Control": "max-age=3600",
         "Content-Type": "image/png",
     }
     statusCode = 200
