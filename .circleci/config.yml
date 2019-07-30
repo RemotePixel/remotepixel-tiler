@@ -1,7 +1,7 @@
 version: 2
 
 jobs:
-  "python-3.6":
+  tests:
     docker:
       - image: circleci/python:3.6.5
     environment:
@@ -37,7 +37,7 @@ jobs:
       - attach_workspace:
           at: ~/remotepixel-tiler
       - run:
-          name: install requirements
+          name: install Cython (for rio-tiler-mvt)
           command: pip3 install cython==0.28
       - run:
           name: install requirements
@@ -71,20 +71,19 @@ jobs:
           command: cd services/landsat && sls deploy
       - run:
           name: Deploy cbers application
-          command: cd services/cogeo && sls deploy
-
+          command: cd services/cbers && sls deploy
 
 workflows:
   version: 2
-  build_package_deploy:
+  test_package_deploy:
     jobs:
-      - "python-3.6":
+      - tests:
           filters:
             tags:
               only: /.*/
       - package:
           requires:
-            - "python-3.6"
+            - "tests"
           filters:
             tags:
               only: /^[0-9]+.*/
@@ -92,7 +91,7 @@ workflows:
               ignore: /.*/
       - deploy:
           requires:
-            - "python-3.6"
+            - "tests"
             - "package"
           filters:
             tags:
