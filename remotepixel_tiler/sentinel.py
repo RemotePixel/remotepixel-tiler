@@ -69,7 +69,7 @@ def tilejson_handler(
     scheme = "http" if host.startswith("127.0.0.1") else "https"
 
     qs = urllib.parse.urlencode(list(kwargs.items()))
-    tile_url = f"{scheme}://{host}/tiles/{scene}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+    tile_url = f"{scheme}://{host}/s2/tiles/{scene}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
 
     scene_params = sentinel2._sentinel_parse_scene_id(scene)
     sentinel_address = "{}/{}/B{}.jp2".format(
