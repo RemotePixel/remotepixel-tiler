@@ -14,8 +14,8 @@ Bundle of `landsat-tiler`, `sentinel-tiler`, `cbers-tiler` and `cogeo-tiler` pow
 
 ##### Requirement
   - AWS Account
-  - Terraform
   - Docker
+  - npm/node + Serverless
 
 ```bash
 #Clone the repo
@@ -29,9 +29,17 @@ $ docker login
 # Create package using custom GDAL install
 $ make package && make test
 
-# Deploy sentinel, landsat and cbers lambda functions
-$ terraform init
-$ terraform apply --var token=MySuperSecretToken
+# Install serverless and plugin
+$ npm install
+
+# Deploy landsat, cogeo and cbers lambda functions
+$ SECRET_TOKEN=mytoken make deploy
+```
+
+You can deploy each tiler independantly
+
+```bash
+$ SECRET_TOKEN=mytoken cd services/landsat && sls deploy --stage production
 ```
 
 #### Infos & links

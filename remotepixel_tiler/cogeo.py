@@ -11,23 +11,16 @@ import urllib
 import numpy
 
 from rio_tiler import main
-from rio_rgbify import encoders
 
 import rasterio
 from rasterio import warp
 
 from rio_tiler.profiles import img_profiles
 from rio_tiler.mercator import get_zooms
-from rio_tiler.utils import (
-    array_to_image,
-    get_colormap,
-    expression,
-    mapzen_elevation_rgb,
-)
-
+from rio_tiler.utils import array_to_image, get_colormap, expression
 from remotepixel_tiler.utils import _postprocess
-
 from lambda_proxy.proxy import API
+
 
 APP = API(name="cogeo-tiler")
 
@@ -154,7 +147,6 @@ def tile(
     rescale: str = None,
     color_formula: str = None,
     color_map: str = None,
-    dem: str = None,
 ) -> Tuple[str, str, BinaryIO]:
     """Handle tile requests."""
     driver = "jpeg" if ext == "jpg" else ext
@@ -182,20 +174,12 @@ def tile(
             url, x, y, z, indexes=indexes, tilesize=tilesize, nodata=nodata
         )
 
-    if dem:
-        if dem == "mapbox":
-            tile = encoders.data_to_rgb(tile, -10000, 1)
-        elif dem == "mapzen":
-            tile = mapzen_elevation_rgb.data_to_rgb(tile)
-        else:
-            return ("NOK", "text/plain", 'Invalid "dem" mode')
-    else:
-        rtile, rmask = _postprocess(
-            tile, mask, rescale=rescale, color_formula=color_formula
-        )
+    rtile, rmask = _postprocess(
+        tile, mask, rescale=rescale, color_formula=color_formula
+    )
 
-        if color_map:
-            color_map = get_colormap(color_map, format="gdal")
+    if color_map:
+        color_map = get_colormap(color_map, format="gdal")
 
     options = img_profiles.get(driver, {})
     return (

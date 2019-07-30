@@ -1,0 +1,52 @@
+service: cbers
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: ${opt:stage, 'production'}
+
+  region: us-east-1
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:GetObject"
+        - "s3:ListBucket"
+      Resource:
+        - "arn:aws:s3:::cbers-pds*"
+        - "arn:aws:s3:::cbers-meta-pds*"
+
+  environment:
+    VSI_CACHE: TRUE
+    VSI_CACHE_SIZE: 536870912
+    CPL_TMPDIR: /tmp
+    CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .TIF
+    GDAL_CACHEMAX: 512
+    GDAL_DATA: /var/task/share/gdal
+    GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
+    GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
+    GDAL_HTTP_MULTIPLEX: YES
+    GDAL_HTTP_VERSION: 2
+    PYTHONWARNINGS: ignore
+    TOKEN: ${env:SECRET_TOKEN}
+  
+  apiGateway:
+    binaryMediaTypes:
+      - '*/*'
+    minimumCompressionSize: 0
+
+package:
+  artifact: ../../package.zip
+
+deploymentBucket: remotepixel-${self:provider.region}
+
+functions:
+  tiler:
+    handler: remotepixel_tiler.cbers.APP
+    memorySize: 1536
+    timeout: 10
+    events:
+      - http:
+          path: /{proxy+}
+          method: get
+          cors: true

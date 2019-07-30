@@ -62,7 +62,6 @@ def test_search(cbers_search, event):
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "max-age=3600",
         "Content-Type": "application/json",
     }
     statusCode = 200

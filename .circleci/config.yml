@@ -27,7 +27,7 @@ jobs:
 
   package:
     docker:
-      - image: remotepixel/amazonlinux-gdal:2.4.0
+      - image: remotepixel/amazonlinux-gdal:2.4.2
     environment:
       - PACKAGE_PATH=/root/remotepixel-tiler/package.zip
       - PACKAGE_TMP=/root/package
@@ -36,6 +36,9 @@ jobs:
       - checkout
       - attach_workspace:
           at: ~/remotepixel-tiler
+      - run:
+          name: install requirements
+          command: pip3 install cython==0.28
       - run:
           name: install requirements
           command: pip3 install . --no-binary numpy,rasterio -t $PACKAGE_TMP -U
@@ -49,19 +52,27 @@ jobs:
 
   deploy:
     docker:
-      - image: hashicorp/terraform:light
-    environment:
-      - TERRAFORM_ENVIRONMENT=production
+      - image: circleci/node:8.10
     working_directory: ~/remotepixel-tiler
     steps:
       - checkout
+      - run:
+          name: Install Serverless CLI and dependencies
+          command: |
+            sudo npm i -g serverless
+            npm install
       - attach_workspace:
           at: ~/remotepixel-tiler
       - run:
-          name: terraform deploy
-          command: |
-            terraform init
-            terraform apply -auto-approve -var token=${RPIX_SECRET_TOKEN} --var stage=production
+          name: Deploy cogeo application
+          command: cd services/cogeo && sls deploy
+      - run:
+          name: Deploy landsat application
+          command: cd services/landsat && sls deploy
+      - run:
+          name: Deploy cbers application
+          command: cd services/cogeo && sls deploy
+
 
 workflows:
   version: 2

@@ -28,7 +28,6 @@ class CbersTilerError(Exception):
     token=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
-    ttl=3600,
     tag=["search"],
 )
 def search(path: str, row: str) -> Tuple[str, str, str]:

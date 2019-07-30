@@ -45,6 +45,13 @@ test:
 	docker stop lambda
 	docker rm lambda
 
+STAGENAME=production
+deploy:
+	cd services/cogeo && sls deploy --stage ${STAGENAME}
+	cd services/landsat && sls deploy --stage ${STAGENAME}
+	cd services/cbers && sls deploy --stage ${STAGENAME}
+	#cd services/sentinel && sls deploy --stage ${STAGENAME}
+
 clean:
 	docker stop lambda
 	docker rm lambda
