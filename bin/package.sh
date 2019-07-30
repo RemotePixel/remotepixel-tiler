@@ -3,9 +3,6 @@ echo "-----------------------"
 echo "Creating lambda package ${PACKAGE_PATH}"
 echo "-----------------------"
 echo
-echo "Remove useless python files"
-#find $PACKAGE_TMP -name "*-info" -type d -exec rm -rdf {} +
-
 echo "Remove lambda python packages"
 rm -rdf $PACKAGE_TMP/boto3/ \
   && rm -rdf $PACKAGE_TMP/botocore/ \

@@ -15,10 +15,9 @@ inst_reqs = [
     "aws-sat-api~=2.0",
     "lambda-proxy~=4.1",
     "rio-color",
-    "rio_rgbify",
     "rio-tiler>=1.2.6",
     "rio-tiler-mvt",
-    "rio-tiler-mosaic",
+    "numpy==1.16",
     "vtzero",
 ]
 
