@@ -1,11 +1,14 @@
 """app.sentinel: handle request for Sentinel-tiler."""
 
-from typing import Tuple, Union
-from typing.io import BinaryIO
+from typing import Any, Dict, Tuple, Union, BinaryIO
 
 import json
+import urllib
 
+import rasterio
+from rasterio import warp
 from rio_tiler import sentinel2
+from rio_tiler.mercator import get_zooms
 from rio_tiler.profiles import img_profiles
 from rio_tiler.utils import array_to_image, get_colormap, expression
 
@@ -14,10 +17,81 @@ from remotepixel_tiler.utils import _postprocess
 from lambda_proxy.proxy import API
 
 APP = API(name="sentinel-tiler")
+SENTINEL_BUCKET = "s3://sentinel-s2-l1c"
 
 
 class SentinelTilerError(Exception):
     """Base exception class."""
+
+
+@APP.route(
+    "/s2/<scene>.json",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
+)
+@APP.route(
+    "/s2/tilejson.json",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
+)
+@APP.pass_event
+def tilejson_handler(
+    request: Dict,
+    scene: str,
+    tile_format: str = "png",
+    tile_scale: int = 1,
+    **kwargs: Any,
+) -> Tuple[str, str, str]:
+    """Handle /tilejson.json requests."""
+    host = request["headers"].get(
+        "X-Forwarded-Host", request["headers"].get("Host", "")
+    )
+    # Check for API gateway stage
+    if ".execute-api." in host and ".amazonaws.com" in host:
+        stage = request["requestContext"].get("stage", "")
+        host = f"{host}/{stage}"
+
+    # HACK
+    token = request["multiValueQueryStringParameters"].get("access_token")
+    if token:
+        kwargs.update(dict(access_token=token[0]))
+
+    scheme = "http" if host.startswith("127.0.0.1") else "https"
+
+    qs = urllib.parse.urlencode(list(kwargs.items()))
+    tile_url = f"{scheme}://{host}/tiles/{scene}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+
+    scene_params = sentinel2._sentinel_parse_scene_id(scene)
+    sentinel_address = "{}/{}/B{}.jp2".format(
+        SENTINEL_BUCKET, scene_params["key"], "04"
+    )
+    with rasterio.open(sentinel_address) as src_dst:
+        bounds = warp.transform_bounds(
+            *[src_dst.crs, "epsg:4326"] + list(src_dst.bounds), densify_pts=21
+        )
+        minzoom, maxzoom = get_zooms(src_dst)
+        center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom]
+
+    meta = dict(
+        bounds=bounds,
+        center=center,
+        minzoom=minzoom,
+        maxzoom=maxzoom,
+        name=scene,
+        tilejson="2.1.0",
+        tiles=[tile_url],
+    )
+    return ("OK", "application/json", json.dumps(meta))
 
 
 @APP.route(
