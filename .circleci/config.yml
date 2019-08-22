@@ -41,7 +41,7 @@ jobs:
           command: pip3 install cython==0.28
       - run:
           name: install requirements
-          command: pip3 install . --no-binary numpy,rasterio -t $PACKAGE_TMP -U
+          command: CFLAGS="--std=c99" pip3 install . --no-binary numpy,rasterio -t $PACKAGE_TMP -U
       - run:
           name: create package
           command: bin/package.sh
