@@ -17,7 +17,6 @@ from remotepixel_tiler.utils import _postprocess
 from lambda_proxy.proxy import API
 
 APP = API(name="sentinel-tiler")
-SENTINEL_BUCKET = "s3://sentinel-s2-l1c"
 
 
 class SentinelTilerError(Exception):
@@ -46,34 +45,24 @@ class SentinelTilerError(Exception):
 )
 @APP.pass_event
 def tilejson_handler(
-    request: Dict,
+    event: Dict,
     scene: str,
     tile_format: str = "png",
     tile_scale: int = 1,
     **kwargs: Any,
 ) -> Tuple[str, str, str]:
     """Handle /tilejson.json requests."""
-    host = request["headers"].get(
-        "X-Forwarded-Host", request["headers"].get("Host", "")
-    )
-    # Check for API gateway stage
-    if ".execute-api." in host and ".amazonaws.com" in host:
-        stage = request["requestContext"].get("stage", "")
-        host = f"{host}/{stage}"
-
     # HACK
-    token = request["multiValueQueryStringParameters"].get("access_token")
+    token = event["multiValueQueryStringParameters"].get("access_token")
     if token:
         kwargs.update(dict(access_token=token[0]))
 
-    scheme = "http" if host.startswith("127.0.0.1") else "https"
-
     qs = urllib.parse.urlencode(list(kwargs.items()))
-    tile_url = f"{scheme}://{host}/s2/tiles/{scene}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+    tile_url = f"{APP.host}/s2/tiles/{scene}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
 
     scene_params = sentinel2._sentinel_parse_scene_id(scene)
-    sentinel_address = "{}/{}/B{}.jp2".format(
-        SENTINEL_BUCKET, scene_params["key"], "04"
+    sentinel_address = "s3://{}/{}/B{}.jp2".format(
+        sentinel2.SENTINEL_BUCKET, scene_params["key"], "04"
     )
     with rasterio.open(sentinel_address) as src_dst:
         bounds = warp.transform_bounds(

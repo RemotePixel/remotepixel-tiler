@@ -1,7 +1,6 @@
 """app.cbers: handle request for CBERS-tiler."""
 
-from typing import Tuple, Union
-from typing.io import BinaryIO
+from typing import BinaryIO, Tuple, Union
 
 import json
 

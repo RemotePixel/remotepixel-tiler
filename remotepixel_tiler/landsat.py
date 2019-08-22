@@ -47,35 +47,23 @@ class LandsatTilerError(Exception):
 )
 @APP.pass_event
 def tilejson_handler(
-    request: Dict,
+    event: Dict,
     sceneid: str,
     tile_format: str = "png",
     tile_scale: int = 1,
     **kwargs: Any,
 ) -> Tuple[str, str, str]:
     """Handle /tilejson.json requests."""
-    host = request["headers"].get(
-        "X-Forwarded-Host", request["headers"].get("Host", "")
-    )
-    # Check for API gateway stage
-    if ".execute-api." in host and ".amazonaws.com" in host:
-        stage = request["requestContext"].get("stage", "")
-        host = f"{host}/{stage}"
-
     # HACK
-    token = request["multiValueQueryStringParameters"].get("access_token")
+    token = event["multiValueQueryStringParameters"].get("access_token")
     if token:
         kwargs.update(dict(access_token=token[0]))
 
-    scheme = "http" if host.startswith("127.0.0.1") else "https"
-
     qs = urllib.parse.urlencode(list(kwargs.items()))
     if tile_format in ["pbf", "mvt"]:
-        tile_url = (
-            f"{scheme}://{host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
-        )
+        tile_url = f"{APP.host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
     else:
-        tile_url = f"{scheme}://{host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+        tile_url = f"{APP.host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
 
     scene_params = landsat8._landsat_parse_scene_id(sceneid)
     landsat_address = f"{LANDSAT_BUCKET}/{scene_params['key']}_BQA.TIF"

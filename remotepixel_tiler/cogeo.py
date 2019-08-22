@@ -1,7 +1,6 @@
 """app.main: handle request for lambda-tiler."""
 
-from typing import Any, Dict, Tuple, Union
-from typing.io import BinaryIO
+from typing import Any, BinaryIO, Tuple, Union
 
 import os
 import re
@@ -38,28 +37,13 @@ class TilerError(Exception):
     ttl=3600,
     tag=["metadata"],
 )
-@APP.pass_event
 def tilejson_handler(
-    request: Dict,
-    url: str,
-    tile_format: str = "png",
-    tile_scale: int = 1,
-    **kwargs: Any,
+    url: str, tile_format: str = "png", tile_scale: int = 1, **kwargs: Any
 ) -> Tuple[str, str, str]:
     """Handle /tilejson.json requests."""
-    host = request["headers"].get(
-        "X-Forwarded-Host", request["headers"].get("Host", "")
-    )
-    # Check for API gateway stage
-    if ".execute-api." in host and ".amazonaws.com" in host:
-        stage = request["requestContext"].get("stage", "")
-        host = f"{host}/{stage}"
-
-    scheme = "http" if host.startswith("127.0.0.1") else "https"
-
     kwargs.update(dict(url=url))
     qs = urllib.parse.urlencode(list(kwargs.items()))
-    tile_url = f"{scheme}://{host}/tiles/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}"
+    tile_url = f"{APP.host}/tiles/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}"
     if qs:
         tile_url += f"?{qs}"
 

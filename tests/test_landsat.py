@@ -235,7 +235,6 @@ def test_tiles_bands(expression, landsat8, event):
         "access_token": "YO",
     }
     event["headers"]["Accept-Encoding"] = "gzip, deflate"
-    print(event)
     headers = {
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
