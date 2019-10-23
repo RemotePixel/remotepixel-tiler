@@ -141,7 +141,7 @@ def test_tiles_error(expression, sentinel2, event):
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "max-age=3600",
+        "Cache-Control": "no-cache",
         "Content-Type": "application/json",
     }
     statusCode = 500
