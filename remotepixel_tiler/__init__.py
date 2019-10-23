@@ -1,4 +1,5 @@
 """Remotepixel tiler."""
-# app
 
-__version__ = "4.1.1"
+import pkg_resources
+
+version = pkg_resources.get_distribution(__package__).version

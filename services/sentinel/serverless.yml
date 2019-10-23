@@ -2,10 +2,10 @@ service: sentinel
 
 provider:
   name: aws
-  runtime: python3.6
-  stage: ${opt:stage, 'production'}
-
   region: eu-central-1
+  runtime: python3.7
+  stage: ${opt:stage, 'production'}
+  deploymentBucket: ${opt:bucket}
 
   iamRoleStatements:
     - Effect: "Allow"
@@ -38,7 +38,7 @@ provider:
 package:
   artifact: ../../package.zip
 
-deploymentBucket: remotepixel-${self:provider.region}
+# deploymentBucket: remotepixel-${self:provider.region}
 
 functions:
   tiler:

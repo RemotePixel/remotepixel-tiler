@@ -1,12 +1,11 @@
-FROM remotepixel/amazonlinux-gdal:2.4.2
+FROM remotepixel/amazonlinux:gdal3.0-py3.7
 
-# Install dependencies
-RUN pip3 install pip -U
-RUN pip3 install cython==0.28
+WORKDIR /tmp
 
-ENV PACKAGE_TMP /tmp/package
+ENV PACKAGE_PREFIX /tmp/python
 
 COPY setup.py setup.py
 COPY remotepixel_tiler/ remotepixel_tiler/
 
-RUN CFLAGS="--std=c99" pip3 install . --no-binary numpy,rasterio -t $PACKAGE_TMP -U
+# Install dependencies
+RUN pip3 install . --no-binary numpy,rasterio -t $PACKAGE_PREFIX -U

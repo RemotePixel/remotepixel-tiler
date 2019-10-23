@@ -13,8 +13,6 @@ from rio_tiler.mercator import get_zooms
 from rio_tiler.profiles import img_profiles
 from rio_tiler.utils import array_to_image, get_colormap, expression
 
-from rio_tiler_mvt.mvt import encoder as mvtEncoder
-
 from remotepixel_tiler.utils import _postprocess
 
 from lambda_proxy.proxy import API
@@ -60,16 +58,15 @@ def tilejson_handler(
         kwargs.update(dict(access_token=token[0]))
 
     qs = urllib.parse.urlencode(list(kwargs.items()))
-    if tile_format in ["pbf", "mvt"]:
-        tile_url = f"{APP.host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
-    else:
-        tile_url = f"{APP.host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+    tile_url = (
+        f"{APP.host}/tiles/{sceneid}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+    )
 
     scene_params = landsat8._landsat_parse_scene_id(sceneid)
     landsat_address = f"{LANDSAT_BUCKET}/{scene_params['key']}_BQA.TIF"
     with rasterio.open(landsat_address) as src_dst:
         bounds = warp.transform_bounds(
-            *[src_dst.crs, "epsg:4326"] + list(src_dst.bounds), densify_pts=21
+            src_dst.crs, "epsg:4326", *src_dst.bounds, densify_pts=21
         )
         minzoom, maxzoom = get_zooms(src_dst)
         center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom]
@@ -119,42 +116,6 @@ def metadata(
     pmax = float(pmax) if isinstance(pmax, str) else pmax
     info = landsat8.metadata(scene, pmin, pmax)
     return ("OK", "application/json", json.dumps(info))
-
-
-@APP.route(
-    "/tiles/<scene>/<int:z>/<int:x>/<int:y>.pbf",
-    methods=["GET"],
-    cors=True,
-    token=True,
-    payload_compression_method="gzip",
-    binary_b64encode=True,
-    ttl=3600,
-    tag=["tiles"],
-)
-def mvttiles(
-    scene: str,
-    z: int,
-    x: int,
-    y: int,
-    bands: str = None,
-    tile_size: Union[str, int] = 256,
-    pixel_selection: str = "first",
-    feature_type: str = "point",
-    resampling_method: str = "nearest",
-) -> Tuple[str, str, BinaryIO]:
-    """Handle MVT tile requests."""
-    if tile_size is not None and isinstance(tile_size, str):
-        tile_size = int(tile_size)
-
-    bands = tuple(bands.split(","))
-    tile, mask = landsat8.tile(scene, x, y, z, bands=bands, tilesize=tile_size)
-
-    band_descriptions = [f"Band_{b}" for b in bands]
-    return (
-        "OK",
-        "application/x-protobuf",
-        mvtEncoder(tile, mask, band_descriptions, "landsat", feature_type=feature_type),
-    )
 
 
 @APP.route(
