@@ -62,13 +62,13 @@ jobs:
           at: ~/remotepixel-tiler
       - run:
           name: Deploy cogeo application
-          command: cd services/cogeo && sls deploy --stage test
+          command: cd services/cogeo && sls deploy --stage test --bucket remotepixel-us-east-1
       - run:
           name: Deploy landsat application
-          command: cd services/landsat && sls deploy --stage test
+          command: cd services/landsat && sls deploy --stage test --bucket remotepixel-us-west-2
       - run:
           name: Deploy cbers application
-          command: cd services/cbers && sls deploy --stage test
+          command: cd services/cbers && sls deploy --stage test --bucket remotepixel-us-east-1
 
 workflows:
   version: 2
