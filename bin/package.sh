@@ -22,7 +22,5 @@ echo "Strip shared libraries"
 cd $PREFIX && find lib -name \*.so\* -exec strip {} \;
 
 echo "Create archive"
-cd $PACKAGE_PREFIX && zip -r9q /tmp/package.zip *
-cd $PREFIX && zip -r9q --symlinks /tmp/package.zip lib/*.so* share
-
-cp /tmp/package.zip /local/package.zip
+cd $PACKAGE_PREFIX && zip -r9q $PACKAGE_PATH *
+cd $PREFIX && zip -r9q --symlinks $PACKAGE_PATH lib/*.so* share
