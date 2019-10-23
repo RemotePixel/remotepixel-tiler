@@ -27,6 +27,7 @@ provider:
     GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
     GDAL_HTTP_MULTIPLEX: YES
     GDAL_HTTP_VERSION: 2
+    PROJ_LIB: /var/task/share/proj
     PYTHONWARNINGS: ignore
     TOKEN: ${env:SECRET_TOKEN}
 
