@@ -22,7 +22,6 @@ Bundle of `landsat-tiler`, `sentinel-tiler`, `cbers-tiler` and `cogeo-tiler` pow
 $ git clone https://github.com/RemotePixel/remotepixel-tiler.git
 $ cd remotepixel-tiler/
 
-
 $ docker login
 
 # Fetch Amazon linux AMI docker container + Install Python modules + create package
@@ -31,16 +30,28 @@ $ make package && make test
 
 # Install serverless and plugin
 $ npm install
-
-# Deploy landsat, cogeo and cbers lambda functions
-$ SECRET_TOKEN=mytoken make deploy
 ```
 
 You can deploy each tiler independantly
 
 ```bash
-$ SECRET_TOKEN=mytoken cd services/landsat && sls deploy --stage production
+$ SECRET_TOKEN=mytoken cd services/landsat && sls deploy --bucket my-bucket
+Note: `my-bucket` has to be in us-west-2 region
+
+$ SECRET_TOKEN=mytoken cd services/cbers && sls deploy --stage production --bucket my-bucket
+Note: `my-bucket` has to be in us-east-1 region
+
+$ SECRET_TOKEN=mytoken  cd services/sentinel && sls deploy --bucket my-bucket 
+Note: `my-bucket` has to be in eu-central-1 region
+
+$ cd services/cogeo && sls deploy --bucket my-bucket --region us-east-1
+Note: `my-bucket` has to be in the same region
 ```
+
+### API Docs:
+- cogeo: https://cogeo.remotepixel.ca/docs
+- landsat: https://landsat.remotepixel.ca/docs
+- cbers: https://cbers.remotepixel.ca/docs
 
 #### Infos & links
 - [rio-tiler](https://github.com/mapbox/rio-tiler) rasterio plugin that process Landsat data hosted on AWS S3.

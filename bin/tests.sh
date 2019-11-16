@@ -1,5 +1,5 @@
 #!/bin/bash
-python3 -c 'from remotepixel_tiler import __version__ as rpix_version; print(rpix_version)'
+python3 -c 'from remotepixel_tiler import version as rpix_version; print(rpix_version)'
 
 echo "Test Landsat-8"
 echo "/bounds: " && python3 -c 'from remotepixel_tiler.landsat import APP; resp = APP({"path": "/bounds/LC80230312016320LGN00", "queryStringParameters": {"access_token": "yo"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET", "headers": {}}, None); print("OK") if resp["statusCode"] == 200 else print("NOK")'

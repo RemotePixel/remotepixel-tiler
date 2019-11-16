@@ -27,21 +27,18 @@ jobs:
 
   package:
     docker:
-      - image: remotepixel/amazonlinux-gdal:2.4.2
+      - image: remotepixel/amazonlinux:gdal3.0-py3.7
     environment:
       - PACKAGE_PATH=/root/remotepixel-tiler/package.zip
-      - PACKAGE_TMP=/root/package
+      - PACKAGE_PREFIX=/tmp/python
     working_directory: ~/remotepixel-tiler
     steps:
       - checkout
       - attach_workspace:
           at: ~/remotepixel-tiler
       - run:
-          name: install Cython (for rio-tiler-mvt)
-          command: pip3 install cython==0.28
-      - run:
           name: install requirements
-          command: CFLAGS="--std=c99" pip3 install . --no-binary numpy,rasterio -t $PACKAGE_TMP -U
+          command: pip3 install . --no-binary numpy,rasterio -t $PACKAGE_PREFIX -U
       - run:
           name: create package
           command: bin/package.sh
@@ -65,13 +62,16 @@ jobs:
           at: ~/remotepixel-tiler
       - run:
           name: Deploy cogeo application
-          command: cd services/cogeo && sls deploy
+          command: cd services/cogeo && sls deploy --bucket remotepixel-us-east-1
       - run:
           name: Deploy landsat application
-          command: cd services/landsat && sls deploy
+          command: cd services/landsat && sls deploy --bucket remotepixel-us-west-2
       - run:
           name: Deploy cbers application
-          command: cd services/cbers && sls deploy
+          command: cd services/cbers && sls deploy --bucket remotepixel-us-east-1
+      # - run:
+      #     name: Deploy sentinel application
+      #     command: cd services/sentinel && sls deploy --bucket remotepixel-eu-central-1
 
 workflows:
   version: 2

@@ -49,7 +49,7 @@ def tilejson_handler(
 
     with rasterio.open(url) as src_dst:
         bounds = warp.transform_bounds(
-            *[src_dst.crs, "epsg:4326"] + list(src_dst.bounds), densify_pts=21
+            src_dst.crs, "epsg:4326", *src_dst.bounds, densify_pts=21
         )
         minzoom, maxzoom = get_zooms(src_dst)
         center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom]

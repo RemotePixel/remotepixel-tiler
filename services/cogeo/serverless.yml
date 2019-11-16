@@ -2,17 +2,17 @@ service: cogeo
 
 provider:
   name: aws
-  runtime: python3.6
-  stage: ${opt:stage, 'production'}
-
   region: ${opt:region, 'us-east-1'}
+  runtime: python3.7
+  stage: ${opt:stage, 'production'}
+  deploymentBucket: ${opt:bucket}
 
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - "s3:GetObject"
       Resource:
-        - "arn:aws:s3:::${opt:bucket, 'opendata.remotepixel.ca'}*"
+        - "arn:aws:s3:::${opt:bucket}*"
 
   environment:
     VSI_CACHE: TRUE
@@ -24,17 +24,18 @@ provider:
     GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
     GDAL_HTTP_MULTIPLEX: YES
     GDAL_HTTP_VERSION: 2
+    PROJ_LIB: /var/task/share/proj
     PYTHONWARNINGS: ignore
 
   apiGateway:
     binaryMediaTypes:
       - '*/*'
-    minimumCompressionSize: 0
+    minimumCompressionSize: 1
 
 package:
   artifact: ../../package.zip
 
-deploymentBucket: remotepixel-${self:provider.region}
+# deploymentBucket: remotepixel-${self:provider.region}
 
 functions:
   tiler:

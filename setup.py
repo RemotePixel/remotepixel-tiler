@@ -2,22 +2,13 @@
 
 from setuptools import setup, find_packages
 
-with open("remotepixel_tiler/__init__.py") as f:
-    for line in f:
-        if line.find("__version__") >= 0:
-            version = line.split("=")[1].strip()
-            version = version.strip('"')
-            version = version.strip("'")
-            continue
-
 # Runtime requirements.
 inst_reqs = [
     "aws-sat-api~=2.0",
-    "lambda-proxy>=4.1.4",
+    "lambda-proxy~=5.0",
     "rio-color",
     "rio-tiler>=1.2.10",
-    "rio-tiler-mvt",
-    "vtzero",
+    "rio_tiler_mosaic",
 ]
 
 extra_reqs = {
@@ -27,7 +18,7 @@ extra_reqs = {
 
 setup(
     name="remotepixel-tiler",
-    version=version,
+    version="5.0.1",
     description=u"""""",
     long_description=u"",
     python_requires=">=3",

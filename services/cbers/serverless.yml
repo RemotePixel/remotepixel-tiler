@@ -2,10 +2,10 @@ service: cbers
 
 provider:
   name: aws
-  runtime: python3.6
-  stage: ${opt:stage, 'production'}
-
   region: us-east-1
+  runtime: python3.7
+  stage: ${opt:stage, 'production'}
+  deploymentBucket: ${opt:bucket}
 
   iamRoleStatements:
     - Effect: "Allow"
@@ -28,18 +28,17 @@ provider:
     GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
     GDAL_HTTP_MULTIPLEX: YES
     GDAL_HTTP_VERSION: 2
+    PROJ_LIB: /var/task/share/proj
     PYTHONWARNINGS: ignore
     TOKEN: ${env:SECRET_TOKEN}
   
   apiGateway:
     binaryMediaTypes:
       - '*/*'
-    minimumCompressionSize: 0
+    minimumCompressionSize: 1
 
 package:
   artifact: ../../package.zip
-
-deploymentBucket: remotepixel-${self:provider.region}
 
 functions:
   tiler:

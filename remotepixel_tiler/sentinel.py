@@ -7,7 +7,7 @@ import urllib
 
 import rasterio
 from rasterio import warp
-from rio_tiler import sentinel2
+from rio_tiler import sentinel2, sentinel1
 from rio_tiler.mercator import get_zooms
 from rio_tiler.profiles import img_profiles
 from rio_tiler.utils import array_to_image, get_colormap, expression
@@ -176,6 +176,158 @@ def tile(
     if color_map:
         color_map = get_colormap(color_map, format="gdal")
 
+    options = img_profiles.get(driver, {})
+    return (
+        "OK",
+        f"image/{ext}",
+        array_to_image(rtile, rmask, img_format=driver, color_map=color_map, **options),
+    )
+
+
+@APP.route(
+    "/s1/<scene>.json",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
+)
+@APP.route(
+    "/s1/tilejson.json",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
+)
+@APP.pass_event
+def s1_tilejson_handler(
+    request: Dict,
+    scene: str,
+    tile_format: str = "png",
+    tile_scale: int = 1,
+    **kwargs: Any,
+) -> Tuple[str, str, str]:
+    """Handle /tilejson.json requests."""
+    # HACK
+    token = request["multiValueQueryStringParameters"].get("access_token")
+    if token:
+        kwargs.update(dict(access_token=token[0]))
+
+    qs = urllib.parse.urlencode(list(kwargs.items()))
+    tile_url = f"{APP.host}/s1/tiles/{scene}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+
+    bounds = sentinel1.bounds(scene)["bounds"]
+    minzoom, maxzoom = 7, 13
+    center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom]
+
+    meta = dict(
+        bounds=bounds,
+        center=center,
+        minzoom=minzoom,
+        maxzoom=maxzoom,
+        name=scene,
+        tilejson="2.1.0",
+        tiles=[tile_url],
+    )
+    return ("OK", "application/json", json.dumps(meta))
+
+
+@APP.route(
+    "/s1/bounds/<scene>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
+)
+def s1_bounds(scene: str) -> Tuple[str, str, str]:
+    """Handle bounds requests."""
+    return ("OK", "application/json", json.dumps(sentinel1.bounds(scene)))
+
+
+@APP.route(
+    "/s1/metadata/<scene>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["metadata"],
+)
+def s1_metadata(
+    scene: str,
+    bands: str = None,
+    pmin: Union[str, float] = 2.,
+    pmax: Union[str, float] = 98.,
+) -> Tuple[str, str, str]:
+    """Handle metadata requests."""
+    if not bands:
+        raise Exception("bands is required")
+
+    pmin = float(pmin) if isinstance(pmin, str) else pmin
+    pmax = float(pmax) if isinstance(pmax, str) else pmax
+    info = sentinel1.metadata(scene, pmin, pmax, bands=bands)
+    return ("OK", "application/json", json.dumps(info))
+
+
+@APP.route(
+    "/s1/tiles/<scene>/<int:z>/<int:x>/<int:y>.<ext>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["tiles"],
+)
+@APP.route(
+    "/s1/tiles/<scene>/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
+    methods=["GET"],
+    cors=True,
+    token=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    ttl=3600,
+    tag=["tiles"],
+)
+def s1tile(
+    scene: str,
+    z: int,
+    x: int,
+    y: int,
+    scale: int = 1,
+    ext: str = "png",
+    bands: str = None,
+    rescale: str = None,
+    color_formula: str = None,
+    color_map: str = None,
+) -> Tuple[str, str, BinaryIO]:
+    """Handle tile requests."""
+    if not bands:
+        raise Exception("bands is required")
+
+    tilesize = scale * 256
+
+    tile, mask = sentinel1.tile(
+        scene, x, y, z, bands=tuple(bands.split(",")), tilesize=tilesize
+    )
+
+    rtile, rmask = _postprocess(
+        tile, mask, rescale=rescale, color_formula=color_formula
+    )
+
+    if color_map:
+        color_map = get_colormap(color_map, format="gdal")
+
+    driver = "jpeg" if ext == "jpg" else ext
     options = img_profiles.get(driver, {})
     return (
         "OK",
