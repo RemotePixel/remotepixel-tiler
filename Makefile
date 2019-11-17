@@ -17,7 +17,7 @@ package:
 	docker stop remotepixeltiler
 	docker rm remotepixeltiler
 
-test:
+test: package
 	docker run \
 		--name lambda \
 		-w /var/task/ \
@@ -25,8 +25,6 @@ test:
 		--volume $(shell pwd)/:/local \
 		--env AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 		--env AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
-		--env GDAL_DATA=/var/task/share/gdal \
-		--env PROJ_LIB=/var/task/share/proj \
 		--env PYTHONWARNINGS=ignore \
 		--env GDAL_CACHEMAX=75% \
 		--env VSI_CACHE=TRUE \
@@ -39,7 +37,7 @@ test:
 		--env GDAL_DISABLE_READDIR_ON_OPEN=TRUE \
 		--env CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".TIF,.ovr,.jp2,.tif" \
 		-itd \
-		lambci/lambda:build-python3.7 bash
+		remotepixel/amazonlinux:gdal2.4-py3.7-geo bash
 	docker exec -it lambda bash -c 'unzip -q /local/package.zip -d /var/task/'
 	docker exec -it lambda bash -c '/tmp/bin/tests.sh'
 	docker stop lambda

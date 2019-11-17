@@ -24,8 +24,6 @@ $ cd remotepixel-tiler/
 
 $ docker login
 
-# Fetch Amazon linux AMI docker container + Install Python modules + create package
-# Create package using custom GDAL install
 $ make package && make test
 
 # Install serverless and plugin

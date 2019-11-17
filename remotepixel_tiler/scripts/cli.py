@@ -8,9 +8,15 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
 from remotepixel_tiler.landsat import APP as landsat_app
-from remotepixel_tiler.sentinel import APP as sentine_app
+from remotepixel_tiler.sentinel import APP as sentinel_app
 from remotepixel_tiler.cbers import APP as cbers_app
 from remotepixel_tiler.cogeo import APP as cogeo_app
+
+
+landsat_app.https = False
+sentinel_app.https = False
+cbers_app.https = False
+cogeo_app.https = False
 
 
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
@@ -115,7 +121,7 @@ class SentinelHandler(BaseHTTPRequestHandler):
             "queryStringParameters": dict(parse_qsl(q.query)),
             "httpMethod": self.command,
         }
-        response = sentine_app(request, None)
+        response = sentinel_app(request, None)
 
         self.send_response(int(response["statusCode"]))
         for r in response["headers"]:

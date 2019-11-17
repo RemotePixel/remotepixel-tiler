@@ -1,11 +1,12 @@
-FROM remotepixel/amazonlinux:gdal3.0-py3.7
+FROM remotepixel/amazonlinux:gdal2.4-py3.7-geo
 
 WORKDIR /tmp
 
-ENV PACKAGE_PREFIX /tmp/python
+ENV PYTHONUSERBASE=/var/task
 
-COPY setup.py setup.py
 COPY remotepixel_tiler/ remotepixel_tiler/
+COPY setup.py setup.py
 
 # Install dependencies
-RUN pip3 install . --no-binary numpy,rasterio -t $PACKAGE_PREFIX -U
+RUN pip3 install . --user
+RUN rm -rf remotepixel_tiler setup.py

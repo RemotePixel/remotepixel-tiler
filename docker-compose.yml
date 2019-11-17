@@ -1,0 +1,101 @@
+version: '3'
+
+services:
+  landsat:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - '.:/local'
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - CPL_TMPDIR=/tmp
+      - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.TIF,.ovr
+      - GDAL_CACHEMAX=75%
+      - GDAL_DISABLE_READDIR_ON_OPEN=FALSE
+      - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
+      - GDAL_HTTP_MULTIPLEX=YES
+      - GDAL_HTTP_VERSION=2
+      - TOKEN=${SECRET_TOKEN}
+      - VSI_CACHE_SIZE=536870912
+      - VSI_CACHE=TRUE
+    command: >
+      bash -c "/var/task/bin/remotepixel-tiler landsat"
+
+  cbers:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - '.:/local'
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_REQUEST_PAYER=requester
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - CPL_TMPDIR=/tmp
+      - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif
+      - GDAL_CACHEMAX=75%
+      - GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR
+      - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
+      - GDAL_HTTP_MULTIPLEX=YES
+      - GDAL_HTTP_VERSION=2
+      - TOKEN=${SECRET_TOKEN}
+      - VSI_CACHE_SIZE=536870912
+      - VSI_CACHE=TRUE
+    command: >
+      bash -c "/var/task/bin/remotepixel-tiler cbers"
+
+  sentinel:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - '.:/local'
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_REQUEST_PAYER=requester
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - CPL_TMPDIR=/tmp
+      - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.jp2,.tif
+      - GDAL_CACHEMAX=75%
+      - GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR
+      - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
+      - GDAL_HTTP_MULTIPLEX=YES
+      - GDAL_HTTP_VERSION=2
+      - TOKEN=${SECRET_TOKEN}
+      - VSI_CACHE_SIZE=536870912
+      - VSI_CACHE=TRUE
+    command: >
+      bash -c "/var/task/bin/remotepixel-tiler sentinel"
+
+  cogeo:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - '.:/local'
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - CPL_TMPDIR=/tmp
+      - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif
+      - GDAL_CACHEMAX=75%
+      - GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR
+      - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
+      - GDAL_HTTP_MULTIPLEX=YES
+      - GDAL_HTTP_VERSION=2
+      - TOKEN=${SECRET_TOKEN}
+      - VSI_CACHE_SIZE=536870912
+      - VSI_CACHE=TRUE
+    command: >
+      bash -c "/var/task/bin/remotepixel-tiler cogeo"
+
+  bash:
+    build: .
+    volumes:
+      - '.:/local'
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    command: /bin/bash
